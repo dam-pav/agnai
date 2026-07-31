@@ -638,7 +638,7 @@ export const SDSettings: Component<{
 
   return (
     <>
-      <Show when={props.modelOnly}>
+      <Show when={!props.modelOnly}>
         <TextInput
           fieldName="sdUrl"
           label="SD WebUI URL"
@@ -672,7 +672,7 @@ export const SDSettings: Component<{
         </div>
       </div>
 
-      <Show when={props.modelOnly}>
+      <Show when={!props.modelOnly}>
         <Select
           fieldName="sdSampler"
           items={SD_SAMPLERS}
@@ -680,6 +680,14 @@ export const SDSettings: Component<{
           class="!py-1"
           value={props.cfg.sampler || SD_SAMPLER['DPM++ 2M']}
           onChange={(ev) => props.setter('sampler', ev.value)}
+        />
+
+        <Select
+          items={SWARM_SCHEDULERS}
+          inline
+          class="!py-1"
+          value={props.cfg?.scheduler || SWARM_SCHEDULER['Normal']}
+          onChange={(ev) => props.setter('scheduler', ev.value)}
         />
       </Show>
     </>
