@@ -9,6 +9,7 @@ permissions:
 
 jobs:
   build:
+    if: github.repository == 'agnaistic/agnai'
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository

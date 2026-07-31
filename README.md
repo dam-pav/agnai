@@ -81,6 +81,12 @@ Windows: `C:\Users\sceuick\.agnai`.
    - `--restart=always` Restart at start up or if the server crashes
    - `-p 3001:3001` Expose port 3001. Access the app at `http://localhost:3001`
 
+Fork image: `docker run -dt --restart=always -p 3001:3001 ghcr.io/dam-pav/agnaistic:latest`
+
+The fork publishes `ghcr.io/dam-pav/agnaistic` from the `dev` branch using
+`.github/workflows/ghcr.yml`. The workflow can also be started manually from the GitHub Actions
+page and publishes version tags matching `v*`.
+
 ## Self-Hosting Settings
 
 To try and cater for the small tweaks and tuning that people need for their specific needs at an application level we have `settings.json`.  
