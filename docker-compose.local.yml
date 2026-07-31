@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      args:
+        SHA: local-test
+    ports:
+      - '3001:3001'
+      - '5001:5001'
+    environment:
+      - DB_HOST=mongo
+      - DB_PORT=27017
+      - DB_NAME=agnai
+      - INITIAL_USER=admin
+      - INITIAL_PASSWORD=password
+      - JWT_SECRET=local-test-secret
+      - LOG_LEVEL=debug
+    depends_on:
+      - mongo
+      - redis
+    volumes:
+      - app_db:/app/db
+      - app_assets:/app/assets
+      - app_dist_assets:/app/dist/assets
+      - app_extras:/app/extras
+
+  mongo:
+    image: mongo:8
+    restart: always
+    ports:
+      - '27017:27017'
+    volumes:
+      - mongo_data:/data/db
+
+  redis:
+    image: redis:7
+    restart: always
+
+volumes:
+  app_db:
+  app_assets:
+  app_dist_assets:
+  app_extras:
+  mongo_data:
