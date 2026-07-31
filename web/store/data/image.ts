@@ -249,7 +249,7 @@ async function dispatchImage(req: ImageRequestEntities, opts: GenerateOpts, requ
     `/chat/${opts.chatId}/image`,
     {
       sync: true,
-      prompt: req.request.prompt,
+      prompt: req.request.raw_prompt,
       messageId: opts.messageId,
       ephemeral: opts.ephemeral,
       append: opts.append,
@@ -258,6 +258,7 @@ async function dispatchImage(req: ImageRequestEntities, opts: GenerateOpts, requ
       characterId: req.entities.message?.characterId,
       parent: opts.parent,
       requestId,
+      noAffix: opts.noAffix,
       user: req.entities.user,
     }
   )
