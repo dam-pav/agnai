@@ -16,6 +16,7 @@ const PROVIDER_TYPES = [
   { label: 'NovelAI', value: 'novel' },
   { label: 'SD WebUI', value: 'sd' },
   { label: 'Swarm UI', value: 'swarm' },
+  { label: 'ComfyUI', value: 'comfy' },
   { label: 'OpenAI-Compat', value: 'openai' },
 ]
 
@@ -82,6 +83,15 @@ const init = (): ImageSettings => ({
     scheduler: SWARM_SCHEDULER['Normal'],
     url: 'http://localhost:7801',
     local: true,
+  },
+  comfy: {
+    _id: 'comfy',
+    type: 'comfy',
+    name: 'ComfyUI',
+    model: '',
+    url: 'http://localhost:8188',
+    sampler: 'euler',
+    scheduler: 'normal',
   },
 })
 
@@ -253,6 +263,7 @@ export function useImageContext() {
       { label: 'NovelAI', value: 'novel' },
       { label: 'SD WebUI', value: 'sd' },
       { label: 'Swarm UI', value: 'swarm' },
+      { label: 'ComfyUI', value: 'comfy' },
       { label: 'OpenAI-Compat', value: 'openai' },
     ]
       .map((item) => ({ label: `${item.label}`, value: item.value }))

@@ -334,7 +334,7 @@ export const removeProviderKey = handle(async ({ userId, body }) => {
 const imgProviderGuard = {
   _id: 'string',
   name: 'string',
-  type: ['agnai', 'swarm', 'sd', 'openai', 'horde', 'novel'],
+  type: ['agnai', 'swarm', 'sd', 'openai', 'horde', 'novel', 'comfy'],
   url: 'string',
   sampler: 'string',
   scheduler: 'string?',

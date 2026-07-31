@@ -157,6 +157,16 @@ const initState: EditorState = {
       model: '',
       scheduler: '',
     },
+
+    comfy: {
+      _id: 'comfy',
+      name: 'ComfyUI',
+      type: 'comfy',
+      url: 'http://localhost:8188',
+      sampler: 'euler',
+      scheduler: 'normal',
+      model: '',
+    },
   },
   imageOverride: '',
   flags: {},

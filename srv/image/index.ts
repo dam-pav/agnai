@@ -6,6 +6,7 @@ import { config } from '../config'
 import { v4 } from 'uuid'
 import { saveFile } from '../api/upload'
 import { handleSDImage, handleSwarmImage } from './stable-diffusion'
+import { handleComfyImage } from './comfyui'
 import { sendGuest, sendMany, sendOne } from '../api/ws'
 import { handleHordeImage } from './horde'
 import { AppSchema } from '/common/types'
@@ -202,6 +203,22 @@ async function runImageGenerate(options: {
 
   try {
     switch (provider.type) {
+      case 'comfy':
+        image = await handleComfyImage(
+          {
+            user,
+            prompt,
+            negative,
+            settings: imageSettings,
+            provider,
+            params: opts.params,
+            raw_prompt: opts.prompt,
+          },
+          log,
+          guestId
+        )
+        break
+
       case 'swarm': {
         image = await handleSwarmImage(
           {

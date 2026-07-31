@@ -46,13 +46,14 @@ export type ImageSettings = BaseImageSettings & {
   sd: ImageProviderSettings
   agnai: ImageProviderSettings
   swarm: ImageProviderSettings
+  comfy: ImageProviderSettings
   openai: ImageProviderSettings /** Never actually exists, just for backwards compat */
 
   active?: ImageProviderType
   imageProviderId: string
 }
 
-export type ImageProviderType = 'novel' | 'horde' | 'sd' | 'agnai' | 'swarm' | 'openai'
+export type ImageProviderType = 'novel' | 'horde' | 'sd' | 'agnai' | 'swarm' | 'comfy' | 'openai'
 
 export type ImageProviderLora = {
   id: string

@@ -339,6 +339,10 @@ export const EditImageProvider: Component<{
             <SDSettings cfg={props.provider} setter={props.setter} />
           </Match>
 
+          <Match when={props.provider.type === 'comfy'}>
+            <ComfySettings cfg={props.provider} setter={props.setter} />
+          </Match>
+
           <Match when={props.provider.type === 'openai'}>
             <OpenAISettings cfg={props.provider} setter={props.setter} />
           </Match>
@@ -692,6 +696,77 @@ export const SDSettings: Component<{
       </Show>
     </>
   )
+}
+
+export const ComfySettings: Component<{
+  cfg: ImageProviderSettings
+  setter: ProviderSetter
+}> = (props) => {
+  const [options, setOptions] = createSignal({
+    checkpoints: [] as CustomOption[],
+    samplers: [] as CustomOption[],
+    schedulers: [] as CustomOption[],
+  })
+
+  const loadOptions = async () => {
+    if (!props.cfg.url) return
+    const result = await imageApi.getComfyOptions(props.cfg.url)
+    setOptions({
+      checkpoints: toOptions(result.checkpoints),
+      samplers: toOptions(result.samplers),
+      schedulers: toOptions(result.schedulers),
+    })
+  }
+
+  onMount(loadOptions)
+
+  return (
+    <>
+      <TextInput
+        fieldName="comfyUrl"
+        label="ComfyUI URL"
+        helperText="Base URL for ComfyUI. When self-hosting, the default is http://localhost:8188"
+        placeholder="http://localhost:8188"
+        value={props.cfg.url}
+        onChange={(ev) => props.setter('url', ev.currentTarget.value)}
+      />
+      <div class="flex items-end gap-1">
+        <div class="flex-1">
+          <CustomSelect
+            label="Checkpoint filename"
+            selected={props.cfg.model}
+            buttonLabel={props.cfg.model || 'Select checkpoint'}
+            options={options().checkpoints}
+            onSelect={(ev) => props.setter('model', ev.value)}
+            autoSearch
+          />
+        </div>
+        <Button size="sm" onClick={loadOptions}>
+          <RefreshCcw size={18} />
+        </Button>
+      </div>
+      <CustomSelect
+        label="Sampler"
+        selected={props.cfg.sampler}
+        buttonLabel={props.cfg.sampler || 'Select sampler'}
+        options={options().samplers}
+        onSelect={(ev) => props.setter('sampler', ev.value)}
+        autoSearch
+      />
+      <CustomSelect
+        label="Scheduler"
+        selected={props.cfg.scheduler}
+        buttonLabel={props.cfg.scheduler || 'Select scheduler'}
+        options={options().schedulers}
+        onSelect={(ev) => props.setter('scheduler', ev.value)}
+        autoSearch
+      />
+    </>
+  )
+}
+
+function toOptions(values: string[]): CustomOption[] {
+  return values.map((value) => ({ label: value, value }))
 }
 
 export const OpenAISettings: Component<{

@@ -62,6 +62,7 @@ export const imageApi = {
   dataURLtoFile,
   getImageData,
   getSDModelList,
+  getComfyOptions,
   getImageModelList,
   getImageBase64,
   processBase64,
@@ -122,6 +123,17 @@ export async function generateImagePrompt(opts: {
 const SD_MODEL_CACHE = new Map<string, SDModel[]>()
 
 type SDModel = { title: string; model_name: string; filename: string }
+
+export type ComfyOptions = {
+  checkpoints: string[]
+  samplers: string[]
+  schedulers: string[]
+}
+
+export async function getComfyOptions(url: string) {
+  const res = await api.post<ComfyOptions>('/chat/comfy-options', { url })
+  return res.result ?? { checkpoints: [], samplers: [], schedulers: [] }
+}
 
 export async function getSDModelList(
   opts: { url: string; key?: string; providerId?: string },
