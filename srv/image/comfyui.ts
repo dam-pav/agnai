@@ -36,7 +36,7 @@ export const handleComfyImage: ImageAdapter = async (opts) => {
         positive: ['6', 0],
         sampler_name: params?.sampler || provider.sampler || 'euler',
         scheduler: provider.scheduler || 'normal',
-        seed: params?.seed ?? opts.settings?.seed ?? Math.floor(Math.random() * 1_000_000_000),
+        seed: params?.seed || opts.settings?.seed || Math.floor(Math.random() * 1_000_000_000) + 1,
         steps: params?.steps ?? opts.settings?.steps ?? 20,
       },
     },
