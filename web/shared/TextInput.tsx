@@ -52,6 +52,9 @@ type Props = {
 
   /** Do not update the input value if the value property receives a new value */
   static?: boolean
+
+  /** Allow the user to resize a textarea instead of managing its height automatically */
+  resizable?: boolean
   ref?: (ref: any) => void
 
   onKeyUp?: (
@@ -110,7 +113,7 @@ const TextInput: Component<Props> = (props) => {
   })
 
   const resize = () => {
-    if (props.growup || props.static) return
+    if (props.growup || props.static || props.resizable) return
     if (inputRef?.value === '') {
       setHeight(MIN_HEIGHT + 'px')
       return
@@ -234,7 +237,9 @@ const TextInput: Component<Props> = (props) => {
               'form-field focusable-field text-900 box-border min-h-[40px] w-full rounded-md border border-[var(--bg-600)] px-4 hover:border-white/20 ' +
               (props.class || '')
             }
-            style={{ transition: 'height 0.2s ease-in-out', height: height() }}
+            style={
+              props.resizable ? undefined : { transition: 'height 0.2s ease-in-out', height: height() }
+            }
             classList={{
               'py-2': !props.class?.includes('py-'),
               'border-0.25': props.variant === 'outline',
