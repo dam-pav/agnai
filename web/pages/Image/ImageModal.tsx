@@ -416,10 +416,11 @@ const PromptSettings: Component<{
 }> = (props) => {
   const persist = promptStore((s) => ({ imageHint: s.imageHint }))
   const msgs = msgStore((s) => ({ message: s.graph.tree[props.messageId || ''] }))
+  const generate = 'Image Caption'
 
   const gen = genApi.inferenceSignal({
     onTick: (res, state) => {
-      if (state === 'partial') props.update('prompt', res)
+      if (state === 'partial') props.update('prompt', imageApi.stripGeneratedPrefix(res, generate))
       if (state === 'done' || state === 'error') props.update('promptLoading', false)
     },
   })
@@ -442,7 +443,7 @@ const PromptSettings: Component<{
 
     const template = imageApi.getSummaryTemplate({
       task: ents.summary,
-      generate: 'Image Caption',
+      generate,
       focus: persist.imageHint,
     })
 
@@ -486,13 +487,13 @@ const PromptSettings: Component<{
 
         <TextInput
           parentClass="w-full"
-          class="min-h-[80px] resize-y !py-1 !text-sm"
+          class="image-prompt-textarea min-h-[80px] resize-y !py-1 !text-sm"
           prelabel="Prompt"
           value={props.state.prompt}
           onChange={(ev) => props.update('prompt', ev.currentTarget.value)}
           isMultiline
           resizable
-          textarea={{ rows: 3 }}
+          textarea={{ rows: 3, style: { height: '320px' } }}
         />
 
         <div class="flex w-full items-center justify-between">

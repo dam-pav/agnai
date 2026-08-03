@@ -14,6 +14,25 @@
   align-items: center;
 }
 
+.image-prompt-textarea::-webkit-scrollbar {
+  width: 24px;
+  height: 24px;
+}
+
+.image-prompt-textarea::-webkit-resizer {
+  background: linear-gradient(
+        135deg,
+        transparent 50%,
+        currentColor 50%,
+        currentColor 58%,
+        transparent 58%
+      )
+      8px 8px / 12px 12px no-repeat,
+    linear-gradient(135deg, transparent 50%, currentColor 50%, currentColor 58%, transparent 58%)
+      2px 2px / 18px 18px no-repeat;
+  color: var(--text-600);
+}
+
 @media (min-width: 1024px) {
   .image-modal {
     grid-template-areas:

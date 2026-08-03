@@ -59,6 +59,7 @@ export const imageApi = {
   generateImagePrompt,
   generateImageAsync,
   getSummaryTemplate,
+  stripGeneratedPrefix,
   dataURLtoFile,
   getImageData,
   getSDModelList,
@@ -89,9 +90,10 @@ export async function generateImagePrompt(opts: {
 }) {
   const imgEnts = await getImagePromptEntities(opts.messageId)
   const helper = inferenceHelper({ preset: imgEnts.preset, onTick: opts.onTick })
+  const generate = 'Image Caption'
   const template = getSummaryTemplate({
     task: imgEnts.summary,
-    generate: 'Image Caption',
+    generate,
     focus: opts.question,
   })
   const settings = imgEnts.preset || imgEnts.entities.settings
@@ -112,12 +114,22 @@ export async function generateImagePrompt(opts: {
     if (content) {
       result.result.response = content
     }
+
+    result.result.response = stripGeneratedPrefix(result.result.response, generate)
   }
 
   const summary = result?.result?.response
 
   console.log('Image caption: ', summary)
   return result
+}
+
+export function stripGeneratedPrefix(prompt: string, generate: string) {
+  const trimmed = prompt.trimStart()
+  const prefix = `${generate}:`
+
+  if (!trimmed.toLowerCase().startsWith(prefix.toLowerCase())) return prompt
+  return trimmed.slice(prefix.length).trimStart()
 }
 
 const SD_MODEL_CACHE = new Map<string, SDModel[]>()

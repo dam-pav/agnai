@@ -238,7 +238,9 @@ const TextInput: Component<Props> = (props) => {
               (props.class || '')
             }
             style={
-              props.resizable ? undefined : { transition: 'height 0.2s ease-in-out', height: height() }
+              props.resizable
+                ? undefined
+                : { transition: 'height 0.2s ease-in-out', height: height() }
             }
             classList={{
               'py-2': !props.class?.includes('py-'),
