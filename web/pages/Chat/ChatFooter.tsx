@@ -60,8 +60,10 @@ export const ChatFooter: Component<{
   const moreMessage = () => responseStore.continuation(props.ctx.active?.chat?._id!)
 
   const requestRandom = () => {
-    const index = Math.floor(Math.random() * props.pills.length)
-    const bot = props.pills[index]
+    const lastCharacterId = props.ctx.messages.path.at(-1)?.characterId
+    const eligible = props.pills.filter((bot) => bot._id !== lastCharacterId)
+    const index = Math.floor(Math.random() * eligible.length)
+    const bot = eligible[index]
 
     if (bot) {
       props.requestMessage(bot._id)
