@@ -20,7 +20,7 @@ const helpers: { [key in InterpAll | string]?: JSX.Element | string } = {
   impersonating: `Your character's personality. This only applies when you are using the "character impersonation" feature.`,
   chat_age: `The age of your chat (time elapsed since chat created)`,
   idle_duration: `The time elapsed since you last sent a message`,
-  all_personalities: `Personalities of all characters in the chat EXCEPT the main character.`,
+  all_personalities: `Personalities of all participants in the chat except the character currently replying.`,
   post: 'The "post-amble" text. This gives specific instructions on how the model should respond. E.g. Typically reads: `{{char}}:`',
 
   insert:

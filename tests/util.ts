@@ -86,6 +86,7 @@ export async function build(
     continue?: string
     settings?: Partial<AppSchema.GenSettings>
     replyAs?: AppSchema.Character
+    impersonate?: AppSchema.Character
     resolvedScenario?: string
     characters?: Record<string, AppSchema.Character>
   } = {}
@@ -105,6 +106,7 @@ export async function build(
       continue: opts.continue,
       retry: opts.retry,
       replyAs: opts.replyAs || replyAs,
+      impersonate: opts.impersonate,
       characters,
       sender: profile,
       lastMessage: '',
@@ -147,7 +149,7 @@ async function getParseOpts(
   overrides: TestOpts = {},
   charOverrides: Partial<AppSchema.Character> = {}
 ) {
-  const overChat = overrides.char ? toChat(overrides.char) : chat
+  const overChat = overrides.chat || (overrides.char ? toChat(overrides.char) : chat)
   const overChar = { ...main, ...charOverrides }
   const characters = toMap([overChar, replyAs])
   const parts =
@@ -160,6 +162,7 @@ async function getParseOpts(
         chat: overChat,
         members: overrides.members || [profile],
         replyAs: (overrides.replyAs || replyAs) as any,
+        impersonate: overrides.impersonate,
         settings: overrides.settings,
         book,
         user: overrides.user || user,

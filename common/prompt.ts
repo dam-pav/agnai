@@ -547,18 +547,26 @@ export async function buildPromptPlaceholders(
       )
     }
 
-    for (const bot of Object.values(opts.characters || {})) {
+    const participants = opts.impersonate
+      ? [opts.impersonate, ...Object.values(opts.characters || {})]
+      : Object.values(opts.characters || {})
+
+    for (const bot of participants) {
       if (!bot) continue
       if (personalities.has(bot._id)) continue
 
-      // We skip
-      if (bot._id === opts.replyAs._id) continue
-      if (bot._id === opts.impersonate?._id) continue
+      const isMainCharacter = bot._id === char._id || bot._id === chat.characterId
+      const isImpersonating = bot._id === opts.impersonate?._id
 
       const temp = opts.chat.tempCharacters?.[bot._id]
-      if (temp?.deletedAt || temp?.favorite === false) continue
+      if (!isImpersonating && (temp?.deletedAt || temp?.favorite === false)) continue
 
-      if (!bot._id.startsWith('temp-') && !chat.characters?.[bot._id]) {
+      if (
+        !isMainCharacter &&
+        !isImpersonating &&
+        !bot._id.startsWith('temp-') &&
+        !chat.characters?.[bot._id]
+      ) {
         continue
       }
 
