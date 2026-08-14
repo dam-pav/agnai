@@ -14,11 +14,17 @@ export type BaseImageSettings = {
 
   autofix?: boolean
   template?: string
+  /** @deprecated Generation parameters now belong to ImageProviderSettings. */
   clipSkip?: number
-  width: number
-  height: number
-  steps: number
-  cfg: number
+  /** @deprecated Generation parameters now belong to ImageProviderSettings. */
+  width?: number
+  /** @deprecated Generation parameters now belong to ImageProviderSettings. */
+  height?: number
+  /** @deprecated Generation parameters now belong to ImageProviderSettings. */
+  steps?: number
+  /** @deprecated Generation parameters now belong to ImageProviderSettings. */
+  cfg?: number
+  /** @deprecated Generation parameters now belong to ImageProviderSettings. */
   seed?: number
 }
 
@@ -70,6 +76,14 @@ export type ImageProviderSettings = {
   sampler: string
   scheduler: string
   model: string
+
+  /** Generation parameters owned by this provider. */
+  clipSkip?: number
+  width?: number
+  height?: number
+  steps?: number
+  cfg?: number
+  seed?: number
 
   // Inherit auth from Text Provider
   providerId?: string

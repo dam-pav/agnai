@@ -48,18 +48,19 @@ type NovelImageRequest = {
   }
 }
 
-export const handleNovelImage: ImageAdapter = async ({ user, prompt, negative }, log, guestId) => {
-  const base = user.images
-  const settings = user.images?.novel || defaultSettings
-
-  const ucPreset = +(settings.ucPreset || defaultSettings.ucPreset)
+export const handleNovelImage: ImageAdapter = async (
+  { user, provider, prompt, negative },
+  log,
+  guestId
+) => {
+  const ucPreset = +(provider.ucPreset || defaultSettings.ucPreset)
   const ucNegative = UC_PRESETS[ucPreset] || ''
 
   const key = getNovelApiKey(user, !!guestId)
 
   let input = [formatImagePrompt(prompt)]
 
-  if (settings.qualityTags ?? true) {
+  if (provider.qualityTags ?? true) {
     input.push(QUALITY_TAGS)
   }
 
@@ -69,12 +70,12 @@ export const handleNovelImage: ImageAdapter = async ({ user, prompt, negative },
   const payload: NovelImageRequest = {
     action: 'generate',
     input: finalPrompt,
-    model: settings.model ?? NOVEL_IMAGE_MODEL.Anime_v4_Curated,
+    model: provider.model ?? NOVEL_IMAGE_MODEL.Anime_v4_Curated,
     parameters: {
       autoSmea: false,
       add_original_image: false,
-      height: base?.height ?? 384,
-      width: base?.width ?? 384,
+      height: provider.height ?? 384,
+      width: provider.width ?? 384,
       characterPrompts: [],
       dynamic_thresholding: false,
       noise_schedule: 'karras',
@@ -84,10 +85,10 @@ export const handleNovelImage: ImageAdapter = async ({ user, prompt, negative },
       n_samples: 1,
       negative_prompt: finalNegative,
       params_version: 3,
-      sampler: settings.sampler ?? NOVEL_SAMPLER['DPM++ 2M'],
-      scale: base?.cfg ?? 9,
-      seed: Math.trunc(Math.random() * 1_000_000_000),
-      steps: base?.steps ?? 28,
+      sampler: provider.sampler ?? NOVEL_SAMPLER['DPM++ 2M'],
+      scale: provider.cfg ?? 9,
+      seed: provider.seed || Math.trunc(Math.random() * 1_000_000_000),
+      steps: provider.steps ?? 28,
       // Unsure what to do with these two values
       ucPreset,
       legacy: false,

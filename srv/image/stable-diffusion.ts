@@ -243,7 +243,7 @@ function getPayload(config: InternalConfig, opts: ImageRequestOpts) {
         init.suffix || opts.settings?.suffix || '',
       ]
         .filter((p) => !!p.trim())
-        .join(',')
+        .join('')
 
       payload.prompt = fixImagePrompt(prompt)
     }
@@ -284,17 +284,17 @@ function getBasePayload(config: InternalConfig, opts: ImageRequestOpts): SDReque
 
     return {
       prompt: opts.prompt,
-      clip_skip: opts.params?.clip_skip ?? opts.settings?.clipSkip ?? model?.init.clipSkip ?? 0,
-      height: opts.params?.height ?? opts.settings?.height ?? model?.init.height ?? 1024,
-      width: opts.params?.width ?? opts.settings?.width ?? model?.init.width ?? 1024,
+      clip_skip: opts.params?.clip_skip ?? opts.provider.clipSkip ?? model?.init.clipSkip ?? 0,
+      height: opts.params?.height ?? opts.provider.height ?? model?.init.height ?? 1024,
+      width: opts.params?.width ?? opts.provider.width ?? model?.init.width ?? 1024,
       negative_prompt: opts.params?.negative ?? opts.negative,
       sampler_name: (SD_SAMPLER_REV as any)[opts.params?.sampler ?? sampler],
-      cfg_scale: opts.params?.cfg_scale ?? opts.settings?.cfg ?? model?.init.cfg ?? 9,
+      cfg_scale: opts.params?.cfg_scale ?? opts.provider.cfg ?? model?.init.cfg ?? 9,
       seed:
         opts.params?.seed ||
-        opts.settings?.seed ||
+        opts.provider.seed ||
         Math.trunc(Math.random() * (Number.MAX_SAFE_INTEGER - 1)),
-      steps: opts.params?.steps ?? opts.settings?.steps ?? model?.init.steps ?? 28,
+      steps: opts.params?.steps ?? opts.provider.steps ?? model?.init.steps ?? 28,
       model_override: temp ? temp.override : model?.override,
       denoise: temp ? temp.init.denoise : model?.init.denoise,
       draft_mode: loras.length ? false : opts.provider.draftMode,
@@ -309,16 +309,16 @@ function getBasePayload(config: InternalConfig, opts: ImageRequestOpts): SDReque
       prompt: opts.prompt,
       sd_model_checkpoint: opts.provider.model,
       negative_prompt: opts.negative,
-      cfg_scale: opts.params?.cfg_scale ?? opts.settings?.cfg ?? model?.init.cfg ?? 9,
+      cfg_scale: opts.params?.cfg_scale ?? opts.provider.cfg ?? model?.init.cfg ?? 9,
       batch_size: 1,
       n_iter: 1,
-      seed: opts.params?.seed || opts.settings?.seed || -1,
-      steps: opts.params?.steps ?? opts.settings?.steps ?? model?.init.steps ?? 28,
+      seed: opts.params?.seed || opts.provider.seed || -1,
+      steps: opts.params?.steps ?? opts.provider.steps ?? model?.init.steps ?? 28,
       sampler_name: (SD_SAMPLER_REV as any)[opts.params?.sampler ?? sampler],
       send_images: true,
       save_images: false,
-      height: opts.params?.height ?? opts.settings?.height ?? model?.init.height ?? 1024,
-      width: opts.params?.width ?? opts.settings?.width ?? model?.init.width ?? 1024,
+      height: opts.params?.height ?? opts.provider.height ?? model?.init.height ?? 1024,
+      width: opts.params?.width ?? opts.provider.width ?? model?.init.width ?? 1024,
     }
     return payload
   }
@@ -329,19 +329,19 @@ function getBasePayload(config: InternalConfig, opts: ImageRequestOpts): SDReque
     // hr_scale: 1.5,
     // hr_second_pass_steps: 15,
     // hr_upscaler: "",
-    clip_skip: opts.params?.clip_skip ?? opts.settings?.clipSkip ?? model?.init.clipSkip ?? 0,
-    height: opts.params?.height ?? opts.settings?.height ?? model?.init.height ?? 1024,
-    width: opts.params?.width ?? opts.settings?.width ?? model?.init.width ?? 1024,
+    clip_skip: opts.params?.clip_skip ?? opts.provider.clipSkip ?? model?.init.clipSkip ?? 0,
+    height: opts.params?.height ?? opts.provider.height ?? model?.init.height ?? 1024,
+    width: opts.params?.width ?? opts.provider.width ?? model?.init.width ?? 1024,
     n_iter: 1,
     batch_size: 1,
     negative_prompt: opts.params?.negative ?? opts.negative,
     sampler_name: (SD_SAMPLER_REV as any)[opts.params?.sampler ?? sampler],
-    cfg_scale: opts.params?.cfg_scale ?? opts.settings?.cfg ?? model?.init.cfg ?? 9,
+    cfg_scale: opts.params?.cfg_scale ?? opts.provider.cfg ?? model?.init.cfg ?? 9,
     seed:
       opts.params?.seed ||
-      opts.settings?.seed ||
+      opts.provider.seed ||
       Math.trunc(Math.random() * (Number.MAX_SAFE_INTEGER - 1)),
-    steps: opts.params?.steps ?? opts.settings?.steps ?? model?.init.steps ?? 28,
+    steps: opts.params?.steps ?? opts.provider.steps ?? model?.init.steps ?? 28,
     restore_faces: false,
     save_images: true,
     send_images: true,

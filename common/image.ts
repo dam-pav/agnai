@@ -228,7 +228,7 @@ export function getImagePrompt(
     }
 
     prompt = parts
-      .join(', ')
+      .join('')
       .split(',')
       .filter((p) => !!p.trim())
       .join(', ')

@@ -32,11 +32,11 @@ async function processBase64(base64: string) {
 }
 
 async function getPayload(req: ImageRequestOpts) {
-  const size = `${req.settings?.width || 1024}x${req.settings?.height || 10234}`
+  const size = `${req.provider.width || 1024}x${req.provider.height || 1024}`
   const payload: any = {
     prompt: req.prompt,
     size,
-    steps: `${req.settings?.steps || 20}`,
+    steps: `${req.provider.steps || 20}`,
     model: req.provider.model || '',
   }
 

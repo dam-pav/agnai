@@ -5,7 +5,6 @@ import { createEffect, on } from 'solid-js'
 import { ImageDefaults, ImageSettings } from '/common/types/image-schema'
 import { isChatPageMemo } from '/web/shared/hooks'
 import { useTabs } from '/web/shared/Tabs'
-import { ImageModel } from '/common/types/admin'
 import { AppSchema } from '/common/types'
 
 type SettingSource = 'Shared' | 'Character' | 'Chat'
@@ -22,11 +21,6 @@ const PROVIDER_TYPES = [
 
 const init = (): ImageSettings => ({
   summaryPresetId: '',
-  cfg: 7,
-  height: 1216,
-  width: 768,
-  steps: 28,
-  clipSkip: 2,
   negative: '',
   suffix: '',
   summariseChat: true,
@@ -112,7 +106,6 @@ export function useImageContext() {
   const [currentCfg, setCurrentCfg] = createStore(init())
 
   const [state, setState] = createStore({
-    agnaiModel: undefined as ImageModel | undefined,
     canUseImages: false,
     hosts: [] as Array<{ label: string; value: string }>,
     source: 'settings' as AppSchema.ImageSettingsSource,
@@ -347,10 +340,11 @@ async function saveImageSettings(
   entity: any,
   defaults: ImageDefaults
 ) {
+  const settings = withoutProviderSettings(store)
   switch (tab) {
     case 'Shared': {
       await userStore.updatePartialConfig({
-        images: store,
+        images: settings,
         imageDefaults: defaults,
         imageProviderId: store.imageProviderId,
       })
@@ -361,7 +355,7 @@ async function saveImageSettings(
     case 'Chat': {
       await Promise.all([
         chatStore.editChat(entity.chat?._id!, {
-          imageSettings: store,
+          imageSettings: settings,
           imageProviderId: store.imageProviderId,
         }),
         userStore.updatePartialConfig({ imageDefaults: defaults }),
@@ -373,7 +367,7 @@ async function saveImageSettings(
     case 'Character': {
       await Promise.all([
         characterStore.editPartialCharacter(entity.char?._id!, {
-          imageSettings: store,
+          imageSettings: settings,
           imageProviderId: store.imageProviderId,
         }),
         userStore.updatePartialConfig({ imageDefaults: defaults }),
@@ -385,4 +379,9 @@ async function saveImageSettings(
     default:
       return
   }
+}
+
+function withoutProviderSettings(store: ImageSettings): ImageSettings {
+  const { clipSkip, width, height, steps, cfg, seed, ...settings } = store
+  return settings as ImageSettings
 }

@@ -339,6 +339,12 @@ const imgProviderGuard = {
   sampler: 'string',
   scheduler: 'string?',
   model: 'string',
+  clipSkip: 'number?',
+  width: 'number?',
+  height: 'number?',
+  steps: 'number?',
+  cfg: 'number?',
+  seed: 'number?',
   providerId: 'string?',
   draftMode: 'boolean?',
   local: 'boolean?',
@@ -654,6 +660,19 @@ export async function getSafeUserConfig(userId: string, seed?: string) {
     addImageProvider(list, 'swarm', 'SwarmUI', user.images?.swarm)
     addImageProvider(list, 'sd', 'Stable Diffusion', user.images?.sd)
     user.imageProviders = list
+  }
+
+  // Migrate generation parameters from the legacy shared image settings. Keep this
+  // fallback until existing users have had their provider records persisted.
+  if (user.images) {
+    for (const provider of user.imageProviders) {
+      provider.clipSkip ??= user.images.clipSkip
+      provider.width ??= user.images.width
+      provider.height ??= user.images.height
+      provider.steps ??= user.images.steps
+      provider.cfg ??= user.images.cfg
+      provider.seed ??= user.images.seed
+    }
   }
 
   await store.users.updateUser(userId, {

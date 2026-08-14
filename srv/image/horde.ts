@@ -6,7 +6,11 @@ import { HordeCheck } from '../../common/horde-gen'
 import { sendGuest, sendOne } from '../api/ws'
 import { AppSchema } from '/common/types'
 
-export const handleHordeImage: ImageAdapter = async ({ user, prompt, negative }, log, guestId) => {
+export const handleHordeImage: ImageAdapter = async (
+  { user, provider, prompt, negative },
+  log,
+  guestId
+) => {
   let key = getHordeKey(user, !!guestId)
 
   const onTick = (status: HordeCheck) => {
@@ -23,6 +27,7 @@ export const handleHordeImage: ImageAdapter = async ({ user, prompt, negative },
 
   const { text: image } = await horde.generateImage(
     { ...user, hordeKey: key },
+    provider,
     prompt,
     negative,
     onTick,

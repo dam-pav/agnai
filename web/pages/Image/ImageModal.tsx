@@ -428,7 +428,7 @@ const PromptSettings: Component<{
   const fullImagePrompt = createMemo(() => {
     const parts = [props.settings?.prefix, props.state.prompt, props.settings?.suffix]
       .filter((c) => !!c?.trim())
-      .join(', ')
+      .join('')
     const cleaned = cleanPrompt(parts)
     return cleaned
   })
@@ -487,13 +487,13 @@ const PromptSettings: Component<{
 
         <TextInput
           parentClass="w-full"
-          class="image-prompt-textarea min-h-[80px] resize-y !py-1 !text-sm"
+          class="image-prompt-textarea h-[320px] min-h-[80px] resize-y !py-1 !text-sm"
           prelabel="Prompt"
           value={props.state.prompt}
           onChange={(ev) => props.update('prompt', ev.currentTarget.value)}
           isMultiline
           resizable
-          textarea={{ rows: 3, style: { height: '320px' } }}
+          textarea={{ rows: 3 }}
         />
 
         <div class="flex w-full items-center justify-between">

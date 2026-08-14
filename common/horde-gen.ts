@@ -5,6 +5,7 @@ import { SD_SAMPLER } from './image'
 import { toArray } from './util'
 import type { AppLog } from '../srv/middleware'
 import { v4 } from 'uuid'
+import { ImageProviderSettings } from './types/image-schema'
 
 export const HORDE_SEED = v4()
 
@@ -99,31 +100,30 @@ type GenerateOpts = {
 
 export async function generateImage(
   user: AppSchema.User,
+  provider: ImageProviderSettings,
   prompt: string,
   negative: string,
   onTick: (status: HordeCheck) => void,
   log: AppLog = logger
 ) {
-  const base = user.images
-  const settings = user.images?.horde || defaults.image
-
   const payload = {
     prompt: `${prompt.slice(0, 500)} ### ${negative}`,
     params: {
-      height: base?.height ?? 1024,
-      width: base?.width ?? 1024,
-      cfg_scale: base?.cfg ?? 9,
-      clip_skip: base?.clipSkip,
+      height: provider.height ?? 1024,
+      width: provider.width ?? 1024,
+      cfg_scale: provider.cfg ?? 9,
+      clip_skip: provider.clipSkip,
       denoising_strength: 1,
       karras: false,
       n: 1,
       post_processing: [],
-      sampler_name: settings.sampler ?? defaults.image.sampler,
-      steps: base?.steps ?? 28,
+      sampler_name: provider.sampler ?? defaults.image.sampler,
+      seed: provider.seed || undefined,
+      steps: provider.steps ?? 28,
     },
     censor_nsfw: false,
     nsfw: true,
-    models: [settings.model || 'stable_diffusion'],
+    models: [provider.model || 'stable_diffusion'],
     r2: false,
     replacement_filter: true,
     trusted_workers: user.hordeUseTrusted ?? false,

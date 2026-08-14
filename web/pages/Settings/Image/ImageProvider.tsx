@@ -115,6 +115,12 @@ export const SelectImageProvider: Component<{ ctx: ImageContext }> = (props) => 
       sampler: '',
       model: '',
       scheduler: '',
+      clipSkip: 2,
+      width: 1024,
+      height: 1024,
+      steps: 28,
+      cfg: 7,
+      seed: 0,
     })
     closeSub.emit.close()
     setOpen(true)
@@ -318,6 +324,7 @@ export const EditImageProvider: Component<{
           value={props.provider.name || ''}
           onChange={(ev) => props.setter('name', ev.currentTarget.value)}
         />
+        <GenerationSettings cfg={props.provider} setter={props.setter} />
         <Switch>
           <Match when={props.provider.type === 'agnai'}>
             <AgnaiSettings cfg={props.provider} setter={props.setter} />
@@ -351,6 +358,72 @@ export const EditImageProvider: Component<{
     </ConditionalModal>
   )
 }
+
+const GenerationSettings: Component<{
+  cfg: ImageProviderSettings
+  setter: ProviderSetter
+}> = (props) => (
+  <>
+    <InlineRangeInput
+      fieldName="imageSteps"
+      min={5}
+      max={128}
+      step={1}
+      value={props.cfg.steps ?? 28}
+      label="Sampling Steps"
+      onChange={(value) => props.setter('steps', value)}
+    />
+    <InlineRangeInput
+      fieldName="imageClipSkip"
+      min={0}
+      max={4}
+      step={1}
+      value={props.cfg.clipSkip ?? 2}
+      label="Clip Skip"
+      onChange={(value) => props.setter('clipSkip', value)}
+    />
+    <InlineRangeInput
+      fieldName="imageWidth"
+      min={256}
+      max={1280}
+      step={128}
+      value={props.cfg.width ?? 1024}
+      label="Image Width"
+      onChange={(value) => props.setter('width', value)}
+    />
+    <InlineRangeInput
+      fieldName="imageHeight"
+      min={256}
+      max={1280}
+      step={128}
+      value={props.cfg.height ?? 1024}
+      label="Image Height"
+      onChange={(value) => props.setter('height', value)}
+    />
+    <InlineRangeInput
+      fieldName="imageCfg"
+      min={1}
+      max={10}
+      step={0.2}
+      value={props.cfg.cfg ?? 7}
+      label="Guidance Scale"
+      onChange={(value) => props.setter('cfg', value)}
+    />
+    <TextInput
+      fieldName="seed"
+      value={props.cfg.seed ?? 0}
+      label="Seed"
+      type="number"
+      helperText="Seed number (0 = random). Note: The seed will not be consistent across different servers."
+      onChange={(ev) =>
+        props.setter(
+          'seed',
+          Math.max(0, Math.min(+ev.currentTarget.value, Number.MAX_SAFE_INTEGER))
+        )
+      }
+    />
+  </>
+)
 
 export const NovelSettings: Component<{
   cfg: ImageProviderSettings

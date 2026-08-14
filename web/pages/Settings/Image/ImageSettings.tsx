@@ -1,6 +1,5 @@
 import { Match, Show, Switch, createMemo, createSignal } from 'solid-js'
 import Divider from '../../../shared/Divider'
-import { InlineRangeInput } from '../../../shared/RangeInput'
 import TextInput from '../../../shared/TextInput'
 import { chatStore, imageStore, presetStore, userStore } from '../../../store'
 import { IMAGE_SUMMARY_PROMPT } from '/common/image'
@@ -238,75 +237,11 @@ export const ImageSettingsModal = () => {
             </SolidCard>
           </Show>
 
-          <InlineRangeInput
-            fieldName="imageSteps"
-            min={5}
-            max={128}
-            step={1}
-            value={ctx.store.steps ?? ctx.state.agnaiModel?.init.steps ?? 50}
-            label="Sampling Steps"
-            onChange={(ev) => ctx.update('steps', ev)}
-          />
-
-          <InlineRangeInput
-            fieldName="imageClipSkip"
-            min={0}
-            max={4}
-            step={1}
-            value={ctx.store.clipSkip ?? ctx.state.agnaiModel?.init.clipSkip ?? 0}
-            label="Clip Skip"
-            onChange={(ev) => ctx.update('clipSkip', ev)}
-          />
-
-          <InlineRangeInput
-            fieldName="imageWidth"
-            min={256}
-            max={1280}
-            step={128}
-            value={ctx.store.width ?? ctx.state.agnaiModel?.init.width ?? 1024}
-            label="Image Width"
-            onChange={(ev) => ctx.update('width', ev)}
-          />
-
-          <InlineRangeInput
-            fieldName="imageHeight"
-            min={256}
-            max={1280}
-            step={128}
-            value={ctx.store.height ?? ctx.state.agnaiModel?.init.height ?? 1024}
-            label="Image Height"
-            onChange={(ev) => ctx.update('height', ev)}
-          />
-
-          <InlineRangeInput
-            fieldName="imageCfg"
-            value={ctx.store.cfg ?? ctx.state.agnaiModel?.init.cfg ?? 9}
-            label="Guidance Scale"
-            min={1}
-            max={10}
-            step={0.2}
-            onChange={(ev) => ctx.update('cfg', ev)}
-          />
-
           <Toggle
             label="Auto-santisize Prompt"
             helperText="Prompts have underscores replaced and excess whitespace/commas removed"
             value={ctx.store.autofix ?? false}
             onChange={(ev) => ctx.update('autofix', ev)}
-          />
-
-          <TextInput
-            fieldName="seed"
-            value={ctx.store.seed ?? 0}
-            label="Seed"
-            type="number"
-            helperText="Seed number (0 = random). Note: The seed will not be consistent across different servers."
-            onChange={(ev) =>
-              ctx.update(
-                'seed',
-                Math.max(0, Math.min(+ev.currentTarget.value, Number.MAX_SAFE_INTEGER))
-              )
-            }
           />
 
           <TextInput

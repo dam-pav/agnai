@@ -240,6 +240,7 @@ async function dispatchImage(req: ImageRequestEntities, opts: GenerateOpts, requ
     try {
       const { text: image } = await horde.generateImage(
         req.entities.user,
+        req.provider,
         req.request.prompt,
         req.request.negative,
         (status) => {}
@@ -532,13 +533,13 @@ export async function createImageRequest(input: {
     override: '',
     provider,
     params: {
-      cfg_scale: settings?.cfg,
-      clip_skip: settings?.clipSkip,
-      height: settings?.height,
+      cfg_scale: provider.cfg,
+      clip_skip: provider.clipSkip,
+      height: provider.height,
       negative: settings?.negative || '',
-      seed: settings?.seed ?? -1,
-      steps: settings?.steps,
-      width: settings?.width,
+      seed: provider.seed ?? -1,
+      steps: provider.steps,
+      width: provider.width,
     },
   }
 

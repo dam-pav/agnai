@@ -22,13 +22,13 @@ export const handleComfyImage: ImageAdapter = async (opts) => {
 
   const { baseUrl, headers } = await resolveComfyHost(provider.url)
   const params = opts.params
-  const clipSkip = params?.clip_skip ?? opts.settings?.clipSkip ?? 0
+  const clipSkip = params?.clip_skip ?? opts.provider.clipSkip ?? 0
   const clip = clipSkip > 0 ? ['10', 0] : ['8', 1]
   const prompt = {
     3: {
       class_type: 'KSampler',
       inputs: {
-        cfg: params?.cfg_scale ?? opts.settings?.cfg ?? 8,
+        cfg: params?.cfg_scale ?? opts.provider.cfg ?? 8,
         denoise: 1,
         latent_image: ['5', 0],
         model: ['8', 0],
@@ -36,8 +36,8 @@ export const handleComfyImage: ImageAdapter = async (opts) => {
         positive: ['6', 0],
         sampler_name: params?.sampler || provider.sampler || 'euler',
         scheduler: provider.scheduler || 'normal',
-        seed: params?.seed || opts.settings?.seed || Math.floor(Math.random() * 1_000_000_000) + 1,
-        steps: params?.steps ?? opts.settings?.steps ?? 20,
+        seed: params?.seed || opts.provider.seed || Math.floor(Math.random() * 1_000_000_000) + 1,
+        steps: params?.steps ?? opts.provider.steps ?? 20,
       },
     },
     4: {
@@ -51,8 +51,8 @@ export const handleComfyImage: ImageAdapter = async (opts) => {
       class_type: 'EmptyLatentImage',
       inputs: {
         batch_size: 1,
-        height: params?.height ?? opts.settings?.height ?? 512,
-        width: params?.width ?? opts.settings?.width ?? 512,
+        height: params?.height ?? opts.provider.height ?? 512,
+        width: params?.width ?? opts.provider.width ?? 512,
       },
     },
     6: {
