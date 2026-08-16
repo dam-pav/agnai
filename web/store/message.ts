@@ -507,14 +507,10 @@ export const msgStore = createStore<MsgState>(
         },
         {
           onTick: opts.onTick,
-          onSummary: async (summary) => {
+          onSummary: (summary) => {
             const { imgWaiting } = msgStore.getState()
             const next = (imgWaiting?.pos || 1) + 1
             msgStore.setState({ imgWaiting: { ...imgWaiting!, pos: next } })
-
-            if (!opts.prompt) {
-              await msgStore.editMessageProp(messageId, { imagePrompt: summary })
-            }
 
             opts.onPrompt?.(summary)
           },

@@ -133,6 +133,7 @@ export function inferenceHelper(init: {
   const generate = async (opts: {
     signal?: AbortController
     prompt: string
+    messageId?: string
     image?: string
     chatId?: string
     preset?: Partial<AppSchema.GenSettings>
@@ -146,7 +147,7 @@ export function inferenceHelper(init: {
     const preset = opts.preset || state.preset
     const schema = opts.schema || state.schema
 
-    const active = await msgsApi.getActiveTemplateParts()
+    const active = await msgsApi.getActiveTemplateParts(opts.messageId)
     active.limit = {
       context: opts.maxContext! || preset?.maxContextLength!,
       encoder: await getEncoder(),

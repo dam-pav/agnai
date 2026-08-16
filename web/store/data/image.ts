@@ -106,7 +106,12 @@ export async function generateImagePrompt(opts: {
     `\n${imgEnts.summary || ''}`
   )
 
-  const stream = await helper.send({ prompt: template, preset: settings, signal: opts.signal })
+  const stream = await helper.send({
+    prompt: template,
+    preset: settings,
+    signal: opts.signal,
+    messageId: opts.messageId,
+  })
   const result = await stream.promise
 
   if (result.result?.response) {

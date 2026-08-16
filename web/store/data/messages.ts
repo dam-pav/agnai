@@ -185,7 +185,7 @@ export async function getMessages(chatId: string, before: string) {
   return res
 }
 
-async function getActiveTemplateParts() {
+async function getActiveTemplateParts(messageId?: string) {
   const { details, lastChatId } = chatStore.getState()
   const active = details[lastChatId]
 
@@ -194,6 +194,7 @@ async function getActiveTemplateParts() {
     signal,
     kind: 'summary',
     text: '',
+    messageId,
   })
   const toLine = messageToLine({
     chars: entities.characters,

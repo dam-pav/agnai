@@ -447,7 +447,7 @@ const PromptSettings: Component<{
       focus: persist.imageHint,
     })
 
-    await gen.send({ prompt: template, preset: ents.preset })
+    await gen.send({ prompt: template, preset: ents.preset, messageId: props.messageId })
   }
 
   const onCleanPrompt = () => {
