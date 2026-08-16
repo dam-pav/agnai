@@ -7,7 +7,7 @@ import { obtainLock, releaseLock } from './lock'
 import { AppSchema } from '../../../common/types/schema'
 import { v4 } from 'uuid'
 import { getScenarioEventType } from '/common/scenario'
-import { parsePartialJson, round } from '/common/util'
+import { parsePartialJson, round, stripLeadingSpeakerName } from '/common/util'
 import { JsonOutput, resolveScenario } from '/common/prompt'
 import { mapPresetsToAdapter } from '/common/presets'
 import { isDefaultTemplate, templates } from '/common/presets/templates'
@@ -424,6 +424,7 @@ export const generateMessageV2 = handle(async (req, res) => {
 
     req.socket.removeAllListeners('end')
 
+    generated = stripLeadingSpeakerName(generated, replyAs.name)
     generated = body.kind === 'continue' ? `${body.continuing.msg} ${generated}` : generated
     if (hydration?.response) {
       generated = hydration.response

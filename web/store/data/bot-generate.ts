@@ -36,7 +36,7 @@ import { msgsApi } from './messages'
 import { getProvider } from '../preset-context'
 import { getLocalPayload, getStoppingStrings } from '/common/requests/payloads'
 import { toastStore } from '../toasts'
-import { inline, LazyPromise, lazyPromise, round } from '/common/util'
+import { inline, LazyPromise, lazyPromise, round, stripLeadingSpeakerName } from '/common/util'
 import type { ResponseState } from '../response'
 import { EVENTS, events } from '/web/emitter'
 import { debug } from '/common/debug'
@@ -179,7 +179,8 @@ async function streamResponse(opts: StreamOpts) {
   }
 
   const stops = getStoppingStrings(req.request, req.entities.settings)
-  const sanitize = (text: string) => (text || '').trim()
+  const sanitize = (text: string) =>
+    stripLeadingSpeakerName(text || '', req.request.replyAs.name)
 
   const format = req.request.settings?.modelFormat
   if (stops.length < 4 && format) {

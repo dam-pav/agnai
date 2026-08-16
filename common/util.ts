@@ -1002,3 +1002,13 @@ export function canUseFeature(requires: FeatureAccess, userType: UserType): bool
     }
   }
 }
+
+/** Remove speaker labels echoed by a model after the prompt already supplied the same label. */
+export function stripLeadingSpeakerName(text: string, name: string): string {
+  const trimmed = text.trim()
+  if (!trimmed || !name.trim()) return trimmed
+
+  const escaped = name.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const prefix = new RegExp(`^(?:\\s*${escaped}\\s*:\\s*)+`, 'i')
+  return trimmed.replace(prefix, '').trimStart()
+}
