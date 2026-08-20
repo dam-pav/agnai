@@ -24,6 +24,7 @@ export async function createScenario(userId: string, scenario: NewScenario) {
     text: scenario.text,
     overwriteCharacterScenario: scenario.overwriteCharacterScenario,
     instructions: scenario.instructions,
+    memoryBookIds: scenario.memoryBookIds || [],
     entries: scenario.entries.map((entry) => ({
       name: entry.name,
       requires: entry.requires,
@@ -49,6 +50,7 @@ export async function updateScenario(userId: string, scenarioId: string, scenari
         text: scenario.text,
         overwriteCharacterScenario: scenario.overwriteCharacterScenario,
         instructions: scenario.instructions,
+        memoryBookIds: scenario.memoryBookIds || [],
         entries: scenario.entries,
         states: scenario.states,
       },

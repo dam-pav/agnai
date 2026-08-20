@@ -170,6 +170,7 @@ const EditScenarioEvents: Component<{
       states: [],
       overwriteCharacterScenario: props.state.overwriteCharacterScenario,
       instructions: props.state.instructions,
+      memoryBookIds: props.state.memoryBookIds || [],
       entries: props.state.entries,
     }
 

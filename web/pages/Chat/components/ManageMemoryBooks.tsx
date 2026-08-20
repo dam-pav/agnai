@@ -66,16 +66,6 @@ export const ManageMemoryBooks: Component<{
     props.updateIds(nextId)
   }
 
-  const useMemoryBook = (addBookId?: string) => {
-    if (!addBookId) return
-
-    const alreadyAssigned = usedBooks().ids.includes(addBookId)
-    if (alreadyAssigned) return
-
-    const nextId = usedBooks().ids.concat(addBookId).join(',')
-    props.updateIds(nextId)
-  }
-
   const changeBook = async (id: string) => {
     const match: AppSchema.MemoryBook | undefined =
       id === 'new' || id === ''
