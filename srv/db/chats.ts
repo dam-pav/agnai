@@ -72,6 +72,7 @@ export async function create(
     | 'greeting'
     | 'scenario'
     | 'scenarioIds'
+    | 'memoryId'
     | 'sampleChat'
     | 'userId'
     | 'overrides'
@@ -102,6 +103,7 @@ export async function create(
     scenario: props.scenario,
     overrides: props.overrides,
     scenarioIds: props.scenarioIds,
+    memoryId: props.memoryId,
     createdAt: now(),
     updatedAt: now(),
     genPreset: props.genPreset,
