@@ -57,6 +57,7 @@
         "description": { "type": "string" },
         "text": { "type": "string" },
         "overwriteCharacterScenario": { "type": "boolean" },
+        "memoryBookIds": { "type": "array", "items": { "type": "string" } },
         "entries": {
           "type": "array",
           "items": { "$ref": "#/definitions/ScenarioEvent" }

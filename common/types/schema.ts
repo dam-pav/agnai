@@ -403,6 +403,7 @@ export namespace AppSchema {
     text: string
     overwriteCharacterScenario: boolean
     instructions?: string
+    memoryBookIds?: string[]
     entries: ScenarioEvent[]
     states: string[]
   }

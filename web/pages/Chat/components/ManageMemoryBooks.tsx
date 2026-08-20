@@ -1,4 +1,4 @@
-import { Component, createMemo, createSignal, For } from 'solid-js'
+import { Component, createMemo, createSignal, For, Show } from 'solid-js'
 import { memoryStore } from '/web/store/memory'
 import { sortAlpha } from '/common/util'
 import { AppSchema } from '/common/types'
@@ -14,6 +14,7 @@ import { Pill } from '/web/shared/Card'
 export const ManageMemoryBooks: Component<{
   bookIds: string
   updateIds: (bookIds: string) => void
+  label?: string
 }> = (props) => {
   const books = memoryStore((s) => ({
     books: s.books,
@@ -62,8 +63,7 @@ export const ManageMemoryBooks: Component<{
 
   const addBook = async (addId: string) => {
     const nextId = usedBooks().ids.concat(addId).join(',')
-
-    useMemoryBook(nextId)
+    props.updateIds(nextId)
   }
 
   const useMemoryBook = (addBookId?: string) => {
@@ -108,6 +108,14 @@ export const ManageMemoryBooks: Component<{
   return (
     <>
       <div class="flex flex-col gap-2">
+        <Show when={props.label}>
+          <div class="flex items-center gap-2">
+            <label class="form-label">{props.label}</label>
+            <Button size="pill" onClick={() => changeBook('new')}>
+              + New Book
+            </Button>
+          </div>
+        </Show>
         <div class="flex items-end gap-2">
           <Button
             disabled={!bookId()}
@@ -121,12 +129,14 @@ export const ManageMemoryBooks: Component<{
           <Select
             fieldName="memoryId"
             label={
-              <div class="flex items-center gap-2">
-                Chat Memory Books{' '}
-                <Button size="pill" onClick={() => changeBook('new')}>
-                  + New Book
-                </Button>
-              </div>
+              !props.label ? (
+                <div class="flex items-center gap-2">
+                  Chat Memory Books{' '}
+                  <Button size="pill" onClick={() => changeBook('new')}>
+                    + New Book
+                  </Button>
+                </div>
+              ) : undefined
             }
             items={availableBooks()}
             value={bookId()}

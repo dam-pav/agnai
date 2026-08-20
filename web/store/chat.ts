@@ -80,6 +80,8 @@ export type NewChat = {
   greeting?: string
   scenario?: string
   scenarioIds?: string[]
+  scenarioId?: string
+  memoryId?: string
   sampleChat?: string
   overrides?: AppSchema.Chat['overrides']
   useOverrides: boolean

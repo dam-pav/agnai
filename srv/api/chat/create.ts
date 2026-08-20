@@ -29,6 +29,7 @@ export const createChat = handle(async ({ body, user, authed, userId }) => {
     const scenario = await store.scenario.getScenario(body.scenarioId)
     if (scenario?.userId !== userId)
       throw new StatusError('You do not have access to this scenario', 403)
+    body.memoryId = scenario.memoryBookIds?.join(',') || undefined
   }
 
   const presets = await store.presets.getUserPresets(userId).then((p) => p.sort(sortPresets))
@@ -84,6 +85,7 @@ export const createChat = handle(async ({ body, user, authed, userId }) => {
       greeting: body.greeting ?? character?.greeting,
       userId: user?.userId!,
       scenarioIds: body.scenarioId ? [body.scenarioId] : [],
+      memoryId: body.memoryId,
     },
     profile!,
     impersonating

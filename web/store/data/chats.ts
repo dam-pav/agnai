@@ -159,6 +159,14 @@ export async function createChat(characterId: string, props: NewChat) {
 
   const { chat, msg } = createNewChat(char, props)
 
+  if (props.scenarioId) {
+    const scenario = await loadItem('scenario').then((items) =>
+      items.find((item) => item._id === props.scenarioId)
+    )
+    chat.scenarioIds = [props.scenarioId]
+    chat.memoryId = scenario?.memoryBookIds?.join(',') || undefined
+  }
+
   // If there is a greeting, parse it before persisting
   if (msg?.msg) {
     const profile = getStore('user').getState().profile

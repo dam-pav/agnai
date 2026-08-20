@@ -14,6 +14,7 @@ import EditScenarioEvents from './EditScenarioEvents'
 import { Page } from '/web/Layout'
 import { createStore } from 'solid-js/store'
 import { AppSchema } from '/common/types/index'
+import { ManageMemoryBooks } from '../Chat/components/ManageMemoryBooks'
 
 const init: AppSchema.ScenarioBook = {
   _id: '',
@@ -26,6 +27,7 @@ const init: AppSchema.ScenarioBook = {
   userId: '',
   description: '',
   instructions: '',
+  memoryBookIds: [],
 }
 
 const CreateScenario: Component = () => {
@@ -149,6 +151,12 @@ const CreateScenario: Component = () => {
           placeholder="Thanks for trying out my scenario! Use the Trigger Event menu to move the story forward."
           value={state.instructions}
           onChange={(ev) => setState('instructions', ev.currentTarget.value)}
+        />
+
+        <ManageMemoryBooks
+          label="Default Memory Books"
+          bookIds={(state.memoryBookIds || []).join(',')}
+          updateIds={(ids) => setState('memoryBookIds', ids.split(',').filter(Boolean))}
         />
 
         <EditScenarioEvents
