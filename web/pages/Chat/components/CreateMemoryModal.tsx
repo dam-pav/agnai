@@ -119,7 +119,7 @@ export const CreateMemoryModal: Component<{
               onClick={() => props.generate(focus(), keepThinking(), suggestKeywords())}
               disabled={actionsDisabled()}
             >
-              Generate Again
+              Generate
             </Button>
           </div>
           <Button schema="secondary" onClick={props.close} disabled={saving()}>

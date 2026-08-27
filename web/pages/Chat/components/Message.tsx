@@ -815,8 +815,9 @@ const MessageOptions: Component<{
   }
 
   const createMemory = () => {
+    setMemoryText('')
+    setMemoryKeywords([])
     setMemoryOpen(true)
-    generateMemory()
   }
 
   const closer = (action: (msg: AppSchema.ChatMessage) => void) => {
