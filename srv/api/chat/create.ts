@@ -26,11 +26,20 @@ export const createChat = handle(async ({ body, user, authed, userId }) => {
   )
 
   let memoryId: string | undefined
+  let characters: Record<string, boolean> | undefined
   if (body.scenarioId) {
     const scenario = await store.scenario.getScenario(body.scenarioId)
     if (scenario?.userId !== userId)
       throw new StatusError('You do not have access to this scenario', 403)
     memoryId = scenario.memoryBookIds?.join(',') || undefined
+    const defaultCharacters = await Promise.all(
+      (scenario.defaultCharacterIds || [])
+        .filter((id) => id !== body.characterId)
+        .map((id) => store.characters.getCharacter(userId, id))
+    )
+    characters = Object.fromEntries(
+      defaultCharacters.filter(Boolean).map((char) => [char!._id, true])
+    )
   }
 
   const presets = await store.presets.getUserPresets(userId).then((p) => p.sort(sortPresets))
@@ -87,6 +96,7 @@ export const createChat = handle(async ({ body, user, authed, userId }) => {
       userId: user?.userId!,
       scenarioIds: body.scenarioId ? [body.scenarioId] : [],
       memoryId,
+      characters,
     },
     profile!,
     impersonating

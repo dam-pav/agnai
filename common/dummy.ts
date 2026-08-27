@@ -173,6 +173,7 @@ export function toScenarioBook(
     overwriteCharacterScenario: false,
     instructions: '',
     memoryBookIds: [],
+    defaultCharacterIds: [],
     entries: [],
     states: [],
     ...overrides,

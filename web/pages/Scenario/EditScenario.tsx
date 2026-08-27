@@ -1,8 +1,8 @@
-import { Component, Show, createEffect, createSignal, on, onMount } from 'solid-js'
-import { scenarioStore } from '../../store'
+import { Component, For, Show, createEffect, createMemo, createSignal, on, onMount } from 'solid-js'
+import { characterStore, scenarioStore } from '../../store'
 import PageHeader from '../../shared/PageHeader'
 import Button from '../../shared/Button'
-import { Copy, Download, Trash } from 'lucide-solid'
+import { Copy, Download, PlusIcon, Trash, X } from 'lucide-solid'
 import { useNavigate, useParams } from '@solidjs/router'
 import TextInput from '../../shared/TextInput'
 import { deepCloneAndRemoveFields } from '../../shared/util'
@@ -15,6 +15,8 @@ import { Page } from '/web/Layout'
 import { createStore } from 'solid-js/store'
 import { AppSchema } from '/common/types/index'
 import { ManageMemoryBooks } from '../Chat/components/ManageMemoryBooks'
+import Select from '/web/shared/Select'
+import { Pill } from '/web/shared/Card'
 
 const init: AppSchema.ScenarioBook = {
   _id: '',
@@ -28,6 +30,7 @@ const init: AppSchema.ScenarioBook = {
   description: '',
   instructions: '',
   memoryBookIds: [],
+  defaultCharacterIds: [],
 }
 
 const CreateScenario: Component = () => {
@@ -38,13 +41,47 @@ const CreateScenario: Component = () => {
     loading: x.loading,
     scenario: x.scenarios.find((s) => s._id === params.editId),
   }))
+  const characters = characterStore((x) => x.characters)
 
   const [showDelete, setShowDelete] = createSignal(false)
   const [showDownload, setShowDownload] = createSignal(false)
+  const [participantId, setParticipantId] = createSignal('')
 
   const [state, setState] = createStore(scenarios.scenario || { ...init })
 
-  onMount(() => scenarioStore.getOne(params.editId))
+  const selectedParticipants = createMemo(() => {
+    const selected = new Set(state.defaultCharacterIds || [])
+    return characters.list.filter((char) => selected.has(char._id))
+  })
+
+  const availableParticipants = createMemo(() => {
+    const selected = new Set(state.defaultCharacterIds || [])
+    const available = characters.list
+      .filter((char) => !selected.has(char._id))
+      .map((char) => ({ label: char.name, value: char._id }))
+      .sort((a, b) => a.label.localeCompare(b.label))
+
+    return [{ label: 'Select Character...', value: '' }, ...available]
+  })
+
+  const addParticipant = () => {
+    const id = participantId()
+    if (!id) return
+    setState('defaultCharacterIds', [...(state.defaultCharacterIds || []), id])
+    setParticipantId('')
+  }
+
+  const removeParticipant = (id: string) => {
+    setState(
+      'defaultCharacterIds',
+      (state.defaultCharacterIds || []).filter((participantId) => participantId !== id)
+    )
+  }
+
+  onMount(() => {
+    scenarioStore.getOne(params.editId)
+    if (!characters.loaded) characterStore.getCharacters()
+  })
 
   createEffect(
     on(
@@ -152,6 +189,42 @@ const CreateScenario: Component = () => {
           value={state.instructions}
           onChange={(ev) => setState('instructions', ev.currentTarget.value)}
         />
+
+        <div class="flex flex-col gap-2">
+          <label class="form-label">Default Participants</label>
+          <div class="text-sm text-[var(--text-600)]">
+            Characters automatically added as participants when a chat starts with this scenario.
+          </div>
+          <div class="flex items-end gap-2">
+            <Button disabled={!participantId()} onClick={addParticipant}>
+              <PlusIcon /> Use
+            </Button>
+            <Select
+              fieldName="defaultParticipantId"
+              items={availableParticipants()}
+              value={participantId()}
+              onChange={(item) => setParticipantId(item.value)}
+            />
+          </div>
+          <ul class="flex w-full flex-col gap-2">
+            <For each={selectedParticipants()}>
+              {(participant) => (
+                <li class="flex w-full">
+                  <Pill class="w-full justify-between">
+                    <div>{participant.name}</div>
+                    <Button
+                      size="sm"
+                      schema="clear"
+                      onClick={() => removeParticipant(participant._id)}
+                    >
+                      <X size={12} />
+                    </Button>
+                  </Pill>
+                </li>
+              )}
+            </For>
+          </ul>
+        </div>
 
         <ManageMemoryBooks
           label="Default Memory Books"

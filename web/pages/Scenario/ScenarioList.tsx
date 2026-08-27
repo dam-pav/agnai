@@ -28,6 +28,7 @@ const ScenarioList: Component = () => {
         instructions: '',
         states: [],
         entries: [],
+        defaultCharacterIds: [],
       },
       (r) => nav(`/scenario/${r._id}`)
     )

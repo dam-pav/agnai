@@ -80,6 +80,7 @@ export async function create(
     | 'mode'
     | 'imageSource'
     | 'treeLeafId'
+    | 'characters'
   >,
   profile: AppSchema.Profile,
   impersonating?: AppSchema.Character
@@ -109,6 +110,7 @@ export async function create(
     genPreset: props.genPreset,
     messageCount: props.greeting ? 1 : 0,
     tempCharacters: {},
+    characters: props.characters,
     imageSource: props.imageSource,
     treeLeafId: props.treeLeafId,
   }

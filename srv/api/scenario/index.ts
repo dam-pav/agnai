@@ -43,6 +43,7 @@ const validScenario = {
   overwriteCharacterScenario: 'boolean',
   instructions: 'string?',
   memoryBookIds: ['string?'],
+  defaultCharacterIds: ['string?'],
   entries: [validEntry],
 } as const
 

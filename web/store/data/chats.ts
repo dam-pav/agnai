@@ -165,6 +165,14 @@ export async function createChat(characterId: string, props: NewChat) {
     )
     chat.scenarioIds = [props.scenarioId]
     chat.memoryId = scenario?.memoryBookIds?.join(',') || undefined
+    const availableIds = new Set(
+      chars.filter((item) => item.userId === char.userId).map((item) => item._id)
+    )
+    chat.characters = Object.fromEntries(
+      (scenario?.defaultCharacterIds || [])
+        .filter((id) => id !== characterId && availableIds.has(id))
+        .map((id) => [id, true])
+    )
   }
 
   // If there is a greeting, parse it before persisting
