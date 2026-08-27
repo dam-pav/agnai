@@ -83,7 +83,14 @@ export type GenerateOpts = { signal: AbortController; hint?: string; systemPromp
    * Generate a message on behalf of the user
    */
   | { kind: 'self' }
-  | { kind: 'summary'; text: string; assistant?: string; messageId?: string }
+  | {
+      kind: 'summary'
+      text: string
+      assistant?: string
+      messageId?: string
+      characterId?: string
+      useChatPreset?: boolean
+    }
   | {
       kind: 'chat-query'
       messageId?: string
@@ -179,8 +186,7 @@ async function streamResponse(opts: StreamOpts) {
   }
 
   const stops = getStoppingStrings(req.request, req.entities.settings)
-  const sanitize = (text: string) =>
-    stripLeadingSpeakerName(text || '', req.request.replyAs.name)
+  const sanitize = (text: string) => stripLeadingSpeakerName(text || '', req.request.replyAs.name)
 
   const format = req.request.settings?.modelFormat
   if (stops.length < 4 && format) {
@@ -703,7 +709,7 @@ async function createActiveChatPrompt(opts: GenerateOpts) {
     settings:
       opts.kind === 'chat-query'
         ? entities.presets.json
-        : opts.kind === 'summary'
+        : opts.kind === 'summary' && !opts.useChatPreset
         ? entities.presets.summary
         : entities.settings,
     chat: entities.chat,
@@ -948,7 +954,7 @@ async function getGenerateProps(opts: GenerateOpts, active: ChatDetail) {
     entities.settings = entities.presets.json
   }
 
-  if (opts.kind === 'summary' && entities.presets.summary) {
+  if (opts.kind === 'summary' && !opts.useChatPreset && entities.presets.summary) {
     entities.settings = entities.presets.summary
   }
 
@@ -1064,6 +1070,7 @@ async function getGenerateProps(opts: GenerateOpts, active: ChatDetail) {
     }
 
     case 'summary': {
+      if (opts.characterId) props.replyAs = getBot(opts.characterId)
       break
     }
 

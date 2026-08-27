@@ -77,6 +77,7 @@ export type MessageOption =
   | 'visible'
   | 'gen-image'
   | 'gen-json'
+  | 'create-memory'
 
 export type UISettings = {
   theme: string
@@ -200,5 +201,6 @@ export const defaultUIsettings: UISettings = {
     visible: { outer: false, pos: 3.9 },
     'gen-image': { outer: false, pos: 3.8 },
     'gen-json': { outer: false, pos: 3.81 },
+    'create-memory': { outer: false, pos: 3.82 },
   },
 }

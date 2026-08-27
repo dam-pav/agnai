@@ -75,7 +75,6 @@ export const inferenceStream = wrap(async (req, res) => {
     {
       ...validInference,
       stop: ['string?'],
-      messages: 'any?',
       requestId: 'string',
       broadcast: optional({ type: 'string', id: 'string', payload: 'any' }),
     },
@@ -104,7 +103,6 @@ export const inferenceStream = wrap(async (req, res) => {
     user: body.user!,
     log,
     prompt: body.prompt,
-    messages: body.messages,
     settings: body.settings,
     guest: userId ? undefined : socketId,
     jsonSchema: body.jsonSchema,
@@ -242,6 +240,7 @@ export const guidance = wrap(async ({ userId, log, body, socketId }, res) => {
       lists: 'any?',
       previous: 'any?',
       reguidance: ['string?'],
+      messages: 'any?',
     },
     body
   )
@@ -282,6 +281,7 @@ export const guidance = wrap(async ({ userId, log, body, socketId }, res) => {
     user: body.user,
     log,
     prompt: body.prompt,
+    messages: body.messages,
     settings: body.settings,
     guest: userId ? undefined : socketId,
     guidance: true,

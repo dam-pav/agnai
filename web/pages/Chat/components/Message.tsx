@@ -19,6 +19,7 @@ import {
   Eye,
   EyeOff,
   BracesIcon,
+  BookPlus,
 } from 'lucide-solid'
 import {
   Accessor,
@@ -71,6 +72,9 @@ import { extractReasoning } from '/common/reasoning'
 import { SendFunc } from './InputBar'
 import { ContextPreset, PresetContext } from '/web/store/preset-context'
 import { runPresetParsers } from '/common/chat'
+import { toastStore } from '/web/store/toasts'
+import { CreateMemoryModal } from './CreateMemoryModal'
+import { botGen } from '/web/store/data/bot-generate'
 
 type MessageProps = {
   messageId: string
@@ -756,6 +760,64 @@ const MessageOptions: Component<{
   canUseAttachments: boolean | undefined
 }> = (props) => {
   let menuParent: any
+  const [memoryOpen, setMemoryOpen] = createSignal(false)
+  const [memoryLoading, setMemoryLoading] = createSignal(false)
+  const [memoryText, setMemoryText] = createSignal('')
+  const [memoryKeywords, setMemoryKeywords] = createSignal<string[]>([])
+
+  const memoryCharacter = createMemo(() => {
+    if (!props.msg.characterId) return
+    const character = props.ctx.allBots[props.msg.characterId]
+    return character?.userId === props.ctx.user?._id ? character : undefined
+  })
+
+  const generateMemory = async (focus = '', keepThinking = false, suggestKeywords = true) => {
+    const character = memoryCharacter()
+    if (!character) return
+
+    setMemoryText('')
+    if (suggestKeywords) setMemoryKeywords([])
+    setMemoryLoading(true)
+
+    const steering = focus.trim() ? `\nAdditional focus: ${focus.trim()}` : ''
+    const output = suggestKeywords
+      ? `Also suggest a short list of specific names, places, objects, or events that should trigger this memory. Return exactly two fields and no other commentary:\nMEMORY: <memory text>\nKEYWORDS: <comma-separated keywords>`
+      : `Return only the memory text, with no title, labels, commentary, or quotation marks.`
+    const instruction = `You are compiling one durable memory for ${character.name}. Consider only the visible conversation supplied through the selected message. Write from ${character.name}'s point of view: preserve what they personally experienced, learned, felt, promised, or inferred, and do not give them knowledge they could not have. Produce a concise, self-contained memory suitable for a character memory book. Use names instead of ambiguous pronouns where useful. ${output}${steering}`
+
+    try {
+      let generated = ''
+      const result = await botGen.streamResponse({
+        signal: new AbortController(),
+        kind: 'summary',
+        text: instruction,
+        systemPrompt: instruction,
+        assistant: `Create ${character.name}'s memory from the visible conversation above.`,
+        messageId: props.msg._id,
+        characterId: character._id,
+        useChatPreset: true,
+        onTick: (response, state) => {
+          if (state === 'partial' || state === 'done') generated = response
+        },
+      })
+      if (result.error) throw new Error(result.error)
+      const response = keepThinking
+        ? generated
+        : extractReasoning(generated, { tags: props.preset?.current.reasoning }).content
+      const parsed = parseGeneratedMemory(response)
+      setMemoryText(parsed.memory)
+      if (suggestKeywords) setMemoryKeywords(parsed.keywords)
+    } catch (error: any) {
+      toastStore.error(`Could not create memory: ${error.message || error}`)
+    } finally {
+      setMemoryLoading(false)
+    }
+  }
+
+  const createMemory = () => {
+    setMemoryOpen(true)
+    generateMemory()
+  }
 
   const closer = (action: (msg: AppSchema.ChatMessage) => void) => {
     return () => {
@@ -892,6 +954,17 @@ const MessageOptions: Component<{
         outer: props.ui.msgOptsInline['gen-json'],
         disabled: !props.preset?.current?.json && !props.preset?.json?.json,
       },
+
+      'create-memory': {
+        key: 'create-memory',
+        label: 'Create Memory',
+        show: !!memoryCharacter(),
+        class: '',
+        icon: BookPlus,
+        onClick: createMemory,
+        outer: props.ui.msgOptsInline['create-memory'],
+        disabled: memoryLoading() || !props.preset?.current,
+      },
     }
 
     return items
@@ -916,88 +989,117 @@ const MessageOptions: Component<{
   })
 
   return (
-    <div class="mr-3 flex items-center gap-4 text-sm">
-      <div class="contents" id={`outer-${props.msg._id}`}></div>
+    <>
+      <div class="mr-3 flex items-center gap-4 text-sm">
+        <div class="contents" id={`outer-${props.msg._id}`}></div>
 
-      <For each={order()}>
-        {(item) => {
-          const def = logic()[item.key]
-          if (!def) return null
+        <For each={order()}>
+          {(item) => {
+            const def = logic()[item.key]
+            if (!def) return null
 
-          return (
-            <MessageOption
-              id={props.msg._id}
-              outer={def.outer?.outer ?? false}
-              show={def.show}
-              label={def.label}
-              open={open()}
-              onClick={closer(def.onClick)}
-              class={def.class}
-              schema={def.schema}
-              disabled={def.disabled}
-            >
-              {def.icon({ size: 18 })}
-            </MessageOption>
-          )
-        }}
-      </For>
+            return (
+              <MessageOption
+                id={props.msg._id}
+                outer={def.outer?.outer ?? false}
+                show={def.show}
+                label={def.label}
+                open={open()}
+                onClick={closer(def.onClick)}
+                class={def.class}
+                schema={def.schema}
+                disabled={def.disabled}
+              >
+                {def.icon({ size: 18 })}
+              </MessageOption>
+            )
+          }}
+        </For>
 
-      <div
-        class="flex items-center"
-        classList={{ 'tour-message-opts': props.index === 0 }}
-        onClick={() => props.showMore[1](true)}
-        id={`actions-${props.msg._id}`}
-        ref={(ref) => {
-          menuParent = ref
-        }}
-      >
-        <MoreHorizontal class="icon-button" />
-      </div>
-
-      <Show when={showInner()}>
-        <DropMenu
-          class="p-1"
-          horz="right"
-          vert="down"
-          show={open()}
-          close={() => props.showMore[1](false)}
-          parent={menuParent}
-        >
-          <div class="flex flex-col gap-1" id={`inner-${props.msg._id}`}></div>
-        </DropMenu>
-      </Show>
-      <Show
-        when={
-          (props.last || (props.msg.adapter === 'image' && props.msg.imagePrompt)) &&
-          props.msg.characterId &&
-          !!props.textBeforeGenMore
-        }
-      >
         <div
-          class="icon-button"
-          onClick={() =>
-            !props.partial && responseStore.continuation(props.msg.chatId, undefined, true)
-          }
-        >
-          <Repeat1 size={18} />
-        </div>
-      </Show>
-
-      <Show when={props.last && !props.msg.characterId}>
-        <div
-          class="icon-button"
-          onClick={() => {
-            if (props.partial) return
-            // msgStore.resend(props.msg.chatId, props.msg._id)
-            if (!props.ctx.chat?.characterId) return
-            responseStore.request(props.ctx.chat._id, props.ctx.chat.characterId)
+          class="flex items-center"
+          classList={{ 'tour-message-opts': props.index === 0 }}
+          onClick={() => props.showMore[1](true)}
+          id={`actions-${props.msg._id}`}
+          ref={(ref) => {
+            menuParent = ref
           }}
         >
-          <RefreshCw size={18} />
+          <MoreHorizontal class="icon-button" />
         </div>
-      </Show>
-    </div>
+
+        <Show when={showInner()}>
+          <DropMenu
+            class="p-1"
+            horz="right"
+            vert="down"
+            show={open()}
+            close={() => props.showMore[1](false)}
+            parent={menuParent}
+          >
+            <div class="flex flex-col gap-1" id={`inner-${props.msg._id}`}></div>
+          </DropMenu>
+        </Show>
+        <Show
+          when={
+            (props.last || (props.msg.adapter === 'image' && props.msg.imagePrompt)) &&
+            props.msg.characterId &&
+            !!props.textBeforeGenMore
+          }
+        >
+          <div
+            class="icon-button"
+            onClick={() =>
+              !props.partial && responseStore.continuation(props.msg.chatId, undefined, true)
+            }
+          >
+            <Repeat1 size={18} />
+          </div>
+        </Show>
+
+        <Show when={props.last && !props.msg.characterId}>
+          <div
+            class="icon-button"
+            onClick={() => {
+              if (props.partial) return
+              // msgStore.resend(props.msg.chatId, props.msg._id)
+              if (!props.ctx.chat?.characterId) return
+              responseStore.request(props.ctx.chat._id, props.ctx.chat.characterId)
+            }}
+          >
+            <RefreshCw size={18} />
+          </div>
+        </Show>
+      </div>
+      <CreateMemoryModal
+        show={memoryOpen()}
+        loading={memoryLoading()}
+        character={memoryCharacter()}
+        memory={memoryText()}
+        keywords={memoryKeywords()}
+        generate={generateMemory}
+        close={() => setMemoryOpen(false)}
+      />
+    </>
   )
+}
+
+function parseGeneratedMemory(response: string) {
+  const text = response.trim()
+  const keywords = text.match(/\n\s*KEYWORDS\s*:\s*([^\n]+)\s*$/i)
+  const memory = (keywords ? text.slice(0, keywords.index) : text)
+    .replace(/(^|\n)\s*MEMORY\s*:\s*/i, '$1')
+    .trim()
+
+  return {
+    memory,
+    keywords: keywords
+      ? keywords[1]
+          .split(',')
+          .map((keyword) => keyword.trim())
+          .filter(Boolean)
+      : [],
+  }
 }
 
 export const Typewriter: Component<{
