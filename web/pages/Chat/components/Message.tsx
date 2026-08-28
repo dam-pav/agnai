@@ -787,6 +787,25 @@ const MessageOptions: Component<{
 
     try {
       let generated = ''
+      let streamedThoughts = ''
+      let streamedContent = ''
+      let finalized = false
+      const showStream = () => {
+        const separator = streamedThoughts && streamedContent ? '\n\n' : ''
+        setMemoryText(streamedThoughts + separator + streamedContent)
+      }
+      const finalizeMemory = (response: string) => {
+        generated = response
+        finalized = true
+        const content = keepThinking
+          ? response
+          : extractReasoning(response, {
+              tags: props.preset?.memory?.reasoning || props.preset?.current.reasoning,
+            }).content
+        const parsed = parseGeneratedMemory(content)
+        setMemoryText(parsed.memory)
+        if (suggestKeywords) setMemoryKeywords(parsed.keywords)
+      }
       const result = await botGen.streamResponse({
         signal: new AbortController(),
         kind: 'summary',
@@ -797,18 +816,20 @@ const MessageOptions: Component<{
         characterId: character._id,
         useMemoryPreset: true,
         onTick: (response, state) => {
-          if (state === 'partial' || state === 'done') generated = response
+          if (state === 'thought') {
+            streamedThoughts += response
+            showStream()
+          }
+          if (state === 'partial') {
+            generated = response
+            streamedContent = response
+            showStream()
+          }
+          if (state === 'done') finalizeMemory(response)
         },
       })
       if (result.error) throw new Error(result.error)
-      const response = keepThinking
-        ? generated
-        : extractReasoning(generated, {
-            tags: props.preset?.memory?.reasoning || props.preset?.current.reasoning,
-          }).content
-      const parsed = parseGeneratedMemory(response)
-      setMemoryText(parsed.memory)
-      if (suggestKeywords) setMemoryKeywords(parsed.keywords)
+      if (!finalized) finalizeMemory(generated)
     } catch (error: any) {
       toastStore.error(`Could not create memory: ${error.message || error}`)
     } finally {

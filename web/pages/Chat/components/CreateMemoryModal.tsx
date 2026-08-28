@@ -7,6 +7,7 @@ import Button from '/web/shared/Button'
 import Modal from '/web/shared/Modal'
 import TextInput from '/web/shared/TextInput'
 import { Toggle } from '/web/shared/Toggle'
+import { markdown } from '/web/shared/markdown'
 import { characterStore } from '/web/store'
 
 export const CreateMemoryModal: Component<{
@@ -107,7 +108,7 @@ export const CreateMemoryModal: Component<{
       close={props.close}
       title={
         <span class="flex items-center gap-2">
-          <BookPlus /> Create Memory
+          <BookPlus /> Create Memory for {props.character?.name || 'character'}
         </span>
       }
       maxWidth="half"
@@ -184,18 +185,30 @@ export const CreateMemoryModal: Component<{
             onChange={(event) => setEntry('weight', +event.currentTarget.value)}
           />
         </div>
-        <TextInput
-          isMultiline
-          label="Memory"
-          value={entry.entry}
-          placeholder={props.loading ? 'Compiling memory...' : 'Memory entry'}
-          parentClass="flex min-h-[160px] flex-1 flex-col"
-          class="h-full min-h-[160px] flex-1"
-          disabled={props.loading}
-          required
-          resizable
-          onChange={(event) => setEntry('entry', event.currentTarget.value)}
-        />
+        <Show
+          when={!props.loading}
+          fallback={
+            <div class="flex min-h-[160px] flex-1 flex-col">
+              <div class="pb-1">Memory</div>
+              <div
+                class="form-field text-900 rendered-markdown h-full min-h-[160px] flex-1 overflow-auto rounded-md border border-[var(--bg-600)] px-4 py-2"
+                innerHTML={markdown.makeHtml(entry.entry || 'Compiling memory...')}
+              />
+            </div>
+          }
+        >
+          <TextInput
+            isMultiline
+            label="Memory"
+            value={entry.entry}
+            placeholder="Memory entry"
+            parentClass="flex min-h-[160px] flex-1 flex-col"
+            class="h-full min-h-[160px] flex-1"
+            required
+            resizable
+            onChange={(event) => setEntry('entry', event.currentTarget.value)}
+          />
+        </Show>
         <Show when={props.loading}>
           <div class="text-600 text-sm">Compiling the conversation from this perspective…</div>
         </Show>

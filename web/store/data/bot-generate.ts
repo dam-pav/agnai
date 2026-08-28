@@ -313,7 +313,7 @@ async function handleStreamTick(
           tick.json = hydrated
         }
 
-        if (opts.kind === 'chat-query') break
+        if (opts.kind === 'chat-query' || opts.kind === 'summary') break
 
         localEmit({
           type: 'message-partial',
@@ -328,7 +328,7 @@ async function handleStreamTick(
 
     case 'thought': {
       if (meta.wait === 0) meta.wait = round((Date.now() - meta.start) / 1000)
-      if (opts.kind === 'chat-query') break
+      if (opts.kind === 'chat-query' || opts.kind === 'summary') break
       localEmit({
         type: 'inference-thought',
         chatId: active.chat._id,
