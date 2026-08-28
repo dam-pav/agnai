@@ -167,7 +167,7 @@ export const CreateMemoryModal: Component<{
         <TextInput
           prelabel="Keywords"
           placeholder="Comma separated words. E.g.: place, person, event"
-          value={entry.keywords.join(', ')}
+          value={entry.keywords.join(',')}
           onChange={(event) => setEntry('keywords', event.currentTarget.value.split(','))}
         />
         <div class="flex flex-row gap-4">
