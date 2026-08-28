@@ -254,6 +254,7 @@ function getAuthedPromptEntities(opts?: { messageId?: string }) {
       current: presets.current,
       json: presets.json || presets.current,
       summary: presets.summary,
+      memory: presets.memory,
       chargen: presets.chargen,
     },
   }
@@ -300,13 +301,15 @@ export function getActivePresets(chat?: AppSchema.Chat, user?: AppSchema.User) {
 
   const json = user.jsonPreset ? presets.find((p) => p._id === user.jsonPreset) : undefined
   const summary = user.summaryPreset ? presets.find((p) => p._id === user.summaryPreset) : undefined
+  const memory = user.memoryPreset ? presets.find((p) => p._id === user.memoryPreset) : undefined
   const chargen = user.chargenPreset ? presets.find((p) => p._id === user.chargenPreset) : undefined
 
   if (json?.providerId) json.thirdPartyModel = json.providerModels?.[json.providerId]
   if (summary?.providerId) summary.thirdPartyModel = summary.providerModels?.[summary.providerId]
+  if (memory?.providerId) memory.thirdPartyModel = memory.providerModels?.[memory.providerId]
   if (chargen?.providerId) chargen.thirdPartyModel = chargen.providerModels?.[chargen.providerId]
 
-  return { current: preset, json, summary, chargen }
+  return { current: preset, json, summary, memory, chargen }
 }
 
 function applySubscriptionAdjustment(preset: Partial<AppSchema.UserGenPreset>) {

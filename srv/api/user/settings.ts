@@ -196,6 +196,8 @@ const validConfig = {
   defaultPreset: 'string?',
   chargenPreset: 'string?',
   summaryPreset: 'string?',
+  memoryPreset: 'string?',
+  memoryPrompt: 'string?',
   jsonPreset: 'string?',
 
   adapterConfig: 'any?',
@@ -222,6 +224,8 @@ export const updatePartialConfig = handle(async ({ userId, body, authed }) => {
       defaultPreset: 'string?',
       chargenPreset: 'string?',
       summaryPreset: 'string?',
+      memoryPreset: 'string?',
+      memoryPrompt: 'string?',
       jsonPreset: 'string?',
       images: 'any?',
       disableLTM: 'boolean?',
@@ -269,6 +273,18 @@ export const updatePartialConfig = handle(async ({ userId, body, authed }) => {
     if (!preset || preset.userId !== userId) throw new StatusError(`Invalid preset - Summary`, 403)
     update.summaryPreset = body.summaryPreset
   }
+
+  if (body.memoryPreset !== undefined && body.memoryPreset !== authed?.memoryPreset) {
+    const preset = body.memoryPreset
+      ? await store.presets.getUserPresetInternal(body.memoryPreset)
+      : undefined
+    if (body.memoryPreset && (!preset || preset.userId !== userId)) {
+      throw new StatusError(`Invalid preset - Memory`, 403)
+    }
+    update.memoryPreset = body.memoryPreset
+  }
+
+  if (body.memoryPrompt !== undefined) update.memoryPrompt = body.memoryPrompt
 
   if (body.announcement) {
     update.announcement = body.announcement
@@ -460,6 +476,18 @@ export const updateConfig = handle(async ({ userId, body, authed }) => {
     if (!preset || preset.userId !== userId) throw new StatusError(`Invalid preset - Summary`, 403)
     update.summaryPreset = body.summaryPreset
   }
+
+  if (body.memoryPreset !== undefined && body.memoryPreset !== authed?.memoryPreset) {
+    const preset = body.memoryPreset
+      ? await store.presets.getUserPresetInternal(body.memoryPreset)
+      : undefined
+    if (body.memoryPreset && (!preset || preset.userId !== userId)) {
+      throw new StatusError(`Invalid preset - Memory`, 403)
+    }
+    update.memoryPreset = body.memoryPreset
+  }
+
+  if (body.memoryPrompt !== undefined) update.memoryPrompt = body.memoryPrompt
 
   const validatedThirdPartyUrl =
     body.thirdPartyFormat === 'kobold'

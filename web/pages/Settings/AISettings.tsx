@@ -17,6 +17,7 @@ import { Copy } from '/web/shared/Copy'
 import { usePresetContext } from '/web/store/preset-context'
 import { ModeGenSettings } from '/web/shared/Mode/ModeGenSettings'
 import { Pencil } from 'lucide-solid'
+import { defaultCreateMemoryPrompt } from '/common/memory-prompt'
 
 const AISettings: Component<{
   state: UserSettings
@@ -32,6 +33,7 @@ const AISettings: Component<{
   const [summaryPreset, presetSetters] = usePresetContext({ anonymous: true })
   const [apiKey, setApiKey] = createSignal(state.user?.apiKey || '')
   const [editPreset, setEditPreset] = createSignal('')
+  const [editPresetTitle, setEditPresetTitle] = createSignal('Preset')
   const [presetFooter, setPresetFooter] = createSignal<any>()
 
   const embeddingOpts = createMemo(() => {
@@ -75,8 +77,9 @@ const AISettings: Component<{
     return true
   })
 
-  const openPreset = (id: string) => {
+  const openPreset = (id: string, title: string) => {
     setEditPreset(id)
+    setEditPresetTitle(title)
     presetSetters.load(id)
   }
 
@@ -127,7 +130,10 @@ const AISettings: Component<{
               noneOption={{ label: 'Use Server Default', value: '' }}
             />
             <Button disabled={!props.state.chargenPreset}>
-              <Pencil size={20} onClick={() => openPreset(props.state.chargenPreset || '')} />
+              <Pencil
+                size={20}
+                onClick={() => openPreset(props.state.chargenPreset || '', 'Character Field')}
+              />
             </Button>
           </div>
 
@@ -143,11 +149,39 @@ const AISettings: Component<{
               <Pencil
                 size={20}
                 onClick={() =>
-                  openPreset(props.state.summaryPreset || state.user?.images?.summaryPresetId || '')
+                  openPreset(
+                    props.state.summaryPreset || state.user?.images?.summaryPresetId || '',
+                    'Chat Summary'
+                  )
                 }
               />
             </Button>
           </div>
+
+          <div class="flex items-end gap-2">
+            <PresetSelect
+              helperText="Create Memory"
+              options={presetOptions()}
+              selected={props.state.memoryPreset}
+              setPresetId={(ev) => props.setter('memoryPreset', ev)}
+              noneOption={{ label: 'Use Active Chat Preset', value: '' }}
+            />
+            <Button disabled={!props.state.memoryPreset}>
+              <Pencil
+                size={20}
+                onClick={() => openPreset(props.state.memoryPreset || '', 'Create Memory')}
+              />
+            </Button>
+          </div>
+
+          <TextInput
+            isMultiline
+            label="Create Memory Prompt Template"
+            helperText="Available placeholders: {{char}} and {{focus}}. Focus sections can be made conditional with {{#if focus}}...{{/if}}. The required response format is appended automatically."
+            value={props.state.memoryPrompt ?? defaultCreateMemoryPrompt}
+            class="min-h-[160px] text-sm"
+            onChange={(ev) => props.setter('memoryPrompt', ev.currentTarget.value)}
+          />
 
           <div class="flex items-end gap-2">
             <PresetSelect
@@ -158,7 +192,10 @@ const AISettings: Component<{
               noneOption={{ label: 'Use Active Chat Preset', value: '' }}
             />
             <Button disabled={!props.state.jsonPreset}>
-              <Pencil size={20} onClick={() => openPreset(props.state.jsonPreset || '')} />
+              <Pencil
+                size={20}
+                onClick={() => openPreset(props.state.jsonPreset || '', 'JSON Schema/Output')}
+              />
             </Button>
           </div>
         </div>
@@ -237,7 +274,7 @@ const AISettings: Component<{
       </div>
 
       <Modal
-        title="Edit Summary Preset"
+        title={`Edit ${editPresetTitle()} Preset`}
         show={!!editPreset()}
         close={() => setEditPreset('')}
         maxWidth="half"

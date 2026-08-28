@@ -116,6 +116,7 @@ const initContext = (id?: string): PresetContext => ({
   current: initPreset(),
   json: undefined,
   summary: undefined,
+  memory: undefined,
   chargen: undefined,
 })
 
@@ -141,6 +142,7 @@ export type PresetContext = {
   current: ContextPreset
   json: AppSchema.UserGenPreset | undefined
   summary: AppSchema.UserGenPreset | undefined
+  memory: AppSchema.UserGenPreset | undefined
   chargen: AppSchema.UserGenPreset | undefined
 }
 
@@ -225,6 +227,7 @@ export function usePresetContext(opts?: { anonymous: boolean }) {
     setContext({
       json: maybeDeepClone(presets.list.find((p) => p._id === user.user?.jsonPreset)),
       summary: maybeDeepClone(presets.list.find((p) => p._id === user.user?.summaryPreset)),
+      memory: maybeDeepClone(presets.list.find((p) => p._id === user.user?.memoryPreset)),
       chargen: maybeDeepClone(presets.list.find((p) => p._id === user.user?.chargenPreset)),
     })
   }
@@ -233,6 +236,7 @@ export function usePresetContext(opts?: { anonymous: boolean }) {
     () => [
       user.user?.jsonPreset,
       user.user?.summaryPreset,
+      user.user?.memoryPreset,
       user.user?.chargenPreset,
       presets.list.length,
     ],

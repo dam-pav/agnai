@@ -39,6 +39,8 @@ export function toUserStoreObject(user: AppSchema.User) {
     'texttospeech',
     'chargenPreset',
     'summaryPreset',
+    'memoryPreset',
+    'memoryPrompt',
     'jsonPreset',
   ] satisfies Array<keyof AppSchema.User>
 

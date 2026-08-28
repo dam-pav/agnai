@@ -90,6 +90,7 @@ export type GenerateOpts = { signal: AbortController; hint?: string; systemPromp
       messageId?: string
       characterId?: string
       useChatPreset?: boolean
+      useMemoryPreset?: boolean
     }
   | {
       kind: 'chat-query'
@@ -709,6 +710,8 @@ async function createActiveChatPrompt(opts: GenerateOpts) {
     settings:
       opts.kind === 'chat-query'
         ? entities.presets.json
+        : opts.kind === 'summary' && opts.useMemoryPreset
+        ? entities.presets.memory || entities.settings
         : opts.kind === 'summary' && !opts.useChatPreset
         ? entities.presets.summary
         : entities.settings,
@@ -954,7 +957,9 @@ async function getGenerateProps(opts: GenerateOpts, active: ChatDetail) {
     entities.settings = entities.presets.json
   }
 
-  if (opts.kind === 'summary' && !opts.useChatPreset && entities.presets.summary) {
+  if (opts.kind === 'summary' && opts.useMemoryPreset && entities.presets.memory) {
+    entities.settings = entities.presets.memory
+  } else if (opts.kind === 'summary' && !opts.useChatPreset && entities.presets.summary) {
     entities.settings = entities.presets.summary
   }
 

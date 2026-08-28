@@ -75,6 +75,7 @@ import { runPresetParsers } from '/common/chat'
 import { toastStore } from '/web/store/toasts'
 import { CreateMemoryModal } from './CreateMemoryModal'
 import { botGen } from '/web/store/data/bot-generate'
+import { defaultCreateMemoryPrompt, renderCreateMemoryPrompt } from '/common/memory-prompt'
 
 type MessageProps = {
   messageId: string
@@ -779,11 +780,10 @@ const MessageOptions: Component<{
     if (suggestKeywords) setMemoryKeywords([])
     setMemoryLoading(true)
 
-    const steering = focus.trim() ? `\nAdditional focus: ${focus.trim()}` : ''
-    const output = suggestKeywords
-      ? `Also suggest a short list of specific names, places, objects, or events that should trigger this memory. Return exactly two fields and no other commentary:\nMEMORY: <memory text>\nKEYWORDS: <comma-separated keywords>`
-      : `Return only the memory text, with no title, labels, commentary, or quotation marks.`
-    const instruction = `You are compiling one durable memory for ${character.name}. Consider only the visible conversation supplied through the selected message. Write from ${character.name}'s point of view: preserve what they personally experienced, learned, felt, promised, or inferred, and do not give them knowledge they could not have. Produce a concise, self-contained memory suitable for a character memory book. Use names instead of ambiguous pronouns where useful. ${output}${steering}`
+    const instruction = renderCreateMemoryPrompt(
+      props.ctx.user?.memoryPrompt?.trim() || defaultCreateMemoryPrompt,
+      { character: character.name, focus, suggestKeywords }
+    )
 
     try {
       let generated = ''
@@ -792,10 +792,10 @@ const MessageOptions: Component<{
         kind: 'summary',
         text: instruction,
         systemPrompt: instruction,
-        assistant: `Create ${character.name}'s memory from the visible conversation above.`,
+        assistant: instruction,
         messageId: props.msg._id,
         characterId: character._id,
-        useChatPreset: true,
+        useMemoryPreset: true,
         onTick: (response, state) => {
           if (state === 'partial' || state === 'done') generated = response
         },
@@ -803,7 +803,9 @@ const MessageOptions: Component<{
       if (result.error) throw new Error(result.error)
       const response = keepThinking
         ? generated
-        : extractReasoning(generated, { tags: props.preset?.current.reasoning }).content
+        : extractReasoning(generated, {
+            tags: props.preset?.memory?.reasoning || props.preset?.current.reasoning,
+          }).content
       const parsed = parseGeneratedMemory(response)
       setMemoryText(parsed.memory)
       if (suggestKeywords) setMemoryKeywords(parsed.keywords)
