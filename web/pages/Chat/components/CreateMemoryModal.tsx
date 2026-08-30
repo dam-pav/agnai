@@ -147,12 +147,6 @@ export const CreateMemoryModal: Component<{
             onChange={(enabled) => setEntry('enabled', enabled)}
           />
         </div>
-        <TextInput
-          prelabel="Focus"
-          placeholder="Optional guidance for what the memory should emphasize"
-          value={focus()}
-          onChange={(event) => setFocus(event.currentTarget.value)}
-        />
         <Toggle
           fieldName="create-memory-keep-thinking"
           label="Include Reasoning in the Memory Response"
@@ -185,6 +179,12 @@ export const CreateMemoryModal: Component<{
             onChange={(event) => setEntry('weight', +event.currentTarget.value)}
           />
         </div>
+        <TextInput
+          prelabel="Focus"
+          placeholder="Optional guidance for what the memory should emphasize"
+          value={focus()}
+          onChange={(event) => setFocus(event.currentTarget.value)}
+        />
         <Show
           when={!props.loading}
           fallback={
