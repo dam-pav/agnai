@@ -175,6 +175,13 @@ const AISettings: Component<{
           </div>
 
           <TextInput
+            label="Default Focus Instruction"
+            helperText="Used as the initial Focus value when creating memories from chat."
+            value={props.state.memoryFocus || ''}
+            onChange={(ev) => props.setter('memoryFocus', ev.currentTarget.value)}
+          />
+
+          <TextInput
             isMultiline
             label="Create Memory Prompt Template"
             helperText="Available placeholders: {{char}} and {{focus}}. Focus sections can be made conditional with {{#if focus}}...{{/if}}. The required response format is appended automatically."

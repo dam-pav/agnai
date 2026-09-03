@@ -16,6 +16,7 @@ export const CreateMemoryModal: Component<{
   character?: AppSchema.Character
   memory: string
   keywords: string[]
+  defaultFocus?: string
   generate: (focus: string, keepThinking: boolean, suggestKeywords: boolean) => void
   close: () => void
 }> = (props) => {
@@ -34,7 +35,7 @@ export const CreateMemoryModal: Component<{
       () => props.show,
       (show) => {
         if (!show) return
-        setFocus('')
+        setFocus(props.defaultFocus || '')
         setKeepThinking(false)
         setSuggestKeywords(props.keywords.length === 0)
         setEntry({

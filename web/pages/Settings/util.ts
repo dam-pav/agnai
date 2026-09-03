@@ -40,6 +40,7 @@ export function toUserStoreObject(user: AppSchema.User) {
     'chargenPreset',
     'summaryPreset',
     'memoryPreset',
+    'memoryFocus',
     'memoryPrompt',
     'jsonPreset',
   ] satisfies Array<keyof AppSchema.User>

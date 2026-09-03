@@ -146,6 +146,7 @@ export namespace AppSchema {
     chargenPreset?: string
     summaryPreset?: string
     memoryPreset?: string
+    memoryFocus?: string
     memoryPrompt?: string
     jsonPreset?: string
 

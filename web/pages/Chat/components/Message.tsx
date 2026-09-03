@@ -1101,6 +1101,7 @@ const MessageOptions: Component<{
         character={memoryCharacter()}
         memory={memoryText()}
         keywords={memoryKeywords()}
+        defaultFocus={props.ctx.user?.memoryFocus}
         generate={generateMemory}
         close={() => setMemoryOpen(false)}
       />

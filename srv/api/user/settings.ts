@@ -197,6 +197,7 @@ const validConfig = {
   chargenPreset: 'string?',
   summaryPreset: 'string?',
   memoryPreset: 'string?',
+  memoryFocus: 'string?',
   memoryPrompt: 'string?',
   jsonPreset: 'string?',
 
@@ -225,6 +226,7 @@ export const updatePartialConfig = handle(async ({ userId, body, authed }) => {
       chargenPreset: 'string?',
       summaryPreset: 'string?',
       memoryPreset: 'string?',
+      memoryFocus: 'string?',
       memoryPrompt: 'string?',
       jsonPreset: 'string?',
       images: 'any?',
@@ -284,6 +286,7 @@ export const updatePartialConfig = handle(async ({ userId, body, authed }) => {
     update.memoryPreset = body.memoryPreset
   }
 
+  if (body.memoryFocus !== undefined) update.memoryFocus = body.memoryFocus
   if (body.memoryPrompt !== undefined) update.memoryPrompt = body.memoryPrompt
 
   if (body.announcement) {
@@ -487,6 +490,7 @@ export const updateConfig = handle(async ({ userId, body, authed }) => {
     update.memoryPreset = body.memoryPreset
   }
 
+  if (body.memoryFocus !== undefined) update.memoryFocus = body.memoryFocus
   if (body.memoryPrompt !== undefined) update.memoryPrompt = body.memoryPrompt
 
   const validatedThirdPartyUrl =
