@@ -52,7 +52,7 @@ import {
 import { markdown } from '../../../shared/markdown'
 import Button, { ButtonSchema } from '/web/shared/Button'
 import { ChatContext, useAppContext } from '/web/store/context'
-import { hydrateTemplate, trimSentence } from '/common/util'
+import { hydrateTemplate, stripResponseHint, trimSentence } from '/common/util'
 import { EVENTS, events } from '/web/emitter'
 import { Pill } from '/web/shared/Card'
 import { DropMenu } from '/web/shared/DropMenu'
@@ -1406,6 +1406,12 @@ function getMessageContent(
 ) {
   const isRetry = props.retrying?._id === msg._id
   const isPartial = msg._id === 'partial-response'
+  const sender = msg.characterId
+    ? ctx.allBots[msg.characterId]?.name || ''
+    : msg.userId
+    ? ctx.profileMap[msg.userId]?.handle || ''
+    : ctx.char?.name || ''
+  const cleanResponse = (text: string) => (msg.userId ? text : stripResponseHint(text, sender))
 
   if (isRetry || isPartial) {
     const { thoughts, content } = extractReasoning(props.partial ? props.partial : msg.msg, {
@@ -1415,7 +1421,7 @@ function getMessageContent(
     if (props.partial) {
       return {
         type: 'partial' as const,
-        message: renderMessage(ctx, preset, content, false, 'partial'),
+        message: renderMessage(ctx, preset, cleanResponse(content), false, 'partial'),
         thoughts,
         class: 'streaming-markdown',
         generating: true,
@@ -1425,7 +1431,7 @@ function getMessageContent(
     if (isPartial && msg.msg) {
       return {
         type: 'partial' as const,
-        message: renderMessage(ctx, preset, content, false, 'partial'),
+        message: renderMessage(ctx, preset, cleanResponse(content), false, 'partial'),
         thoughts,
         class: 'streaming-markdown',
         generating: true,
@@ -1449,6 +1455,7 @@ function getMessageContent(
   let message = content
 
   if (props.last && props.swipe) message = props.swipe
+  message = cleanResponse(message)
   if (msg.event && !props.showHiddenEvents) {
     message = message.replace(/\(OOC:.+\)/, '')
   }
@@ -1462,14 +1469,8 @@ function getMessageContent(
   }
 
   const baseStops = preset?.stopSequences || []
-  const sender = msg.characterId
-    ? ctx.allBots[msg.characterId]?.name
-    : msg.userId
-    ? ctx.profileMap[msg.userId]?.handle
-    : ''
-
   const allStops = (preset?.disableNameStops ? baseStops : baseStops.concat(ctx.nameStops)).filter(
-    (name) => name !== sender + ':'
+    (name) => name.trimStart() !== sender + ':'
   )
 
   const trimmed = stopResponse({ text: message, author: sender, stops: allStops })

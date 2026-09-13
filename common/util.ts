@@ -1012,3 +1012,23 @@ export function stripLeadingSpeakerName(text: string, name: string): string {
   const prefix = new RegExp(`^(?:\\s*${escaped}\\s*:\\s*)+`, 'i')
   return trimmed.replace(prefix, '').trimStart()
 }
+
+/** Hide echoed prompt hints at the start of a reply, including while streaming. */
+export function stripResponseHint(text: string, author: string): string {
+  let content = stripLeadingSpeakerName(text, author)
+  while (/^\(Hint:/i.test(content)) {
+    let depth = 0
+    let end = -1
+    for (let i = 0; i < content.length; i++) {
+      if (content[i] === '(') depth++
+      if (content[i] === ')' && --depth === 0) {
+        end = i + 1
+        break
+      }
+    }
+    // An echoed hint can arrive across multiple streaming chunks.
+    if (end === -1) return ''
+    content = stripLeadingSpeakerName(content.slice(end), author)
+  }
+  return content
+}
