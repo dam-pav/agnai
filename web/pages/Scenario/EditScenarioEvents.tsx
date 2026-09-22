@@ -169,6 +169,7 @@ const EditScenarioEvents: Component<{
       text: props.state.text,
       states: [],
       overwriteCharacterScenario: props.state.overwriteCharacterScenario,
+      scanForMemory: props.state.scanForMemory ?? false,
       instructions: props.state.instructions,
       memoryBookIds: props.state.memoryBookIds || [],
       defaultCharacterIds: props.state.defaultCharacterIds || [],

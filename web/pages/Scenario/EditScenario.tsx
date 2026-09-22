@@ -24,6 +24,7 @@ const init: AppSchema.ScenarioBook = {
   kind: 'scenario',
   name: '',
   overwriteCharacterScenario: false,
+  scanForMemory: false,
   states: [],
   text: '',
   userId: '',
@@ -134,10 +135,7 @@ const CreateScenario: Component = () => {
       />
 
       <div class="flex items-center gap-2">
-        <Show
-          when={state.entries.entries.length ?? 0 > 0}
-          fallback={<p>No events attached to this scenario</p>}
-        >
+        <Show when={state.entries.length > 0} fallback={<p>No events attached to this scenario</p>}>
           <p>{state.entries.length} event(s)</p>
         </Show>
       </div>
@@ -171,6 +169,14 @@ const CreateScenario: Component = () => {
           placeholder="{{char}} and {{user}} are in a scenario. They are..."
           value={state.text}
           onChange={(ev) => setState('text', ev.currentTarget.value)}
+        />
+
+        <Toggle
+          fieldName="scanForMemory"
+          label="Scan scenario for memory triggers"
+          helperText="Scan this scenario’s text for memory-book keywords alongside recent chat messages. This does not count toward chat history depth."
+          value={state.scanForMemory ?? false}
+          onChange={(ev) => setState('scanForMemory', ev)}
         />
 
         <Toggle

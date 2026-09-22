@@ -388,6 +388,7 @@ export async function createChatStream(
         user: opts.user,
         book: opts.book,
         resolvedScenario: opts.resolvedScenario || '',
+        memoryScenario: opts.memoryScenario,
         props: opts.parts.props,
       },
       opts.lines,

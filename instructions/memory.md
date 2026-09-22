@@ -17,6 +17,8 @@ You can also provide `priority` and `weight`, but we'll get to that later.
   - E.g. `{{user}}'s favourite drink is red cordial on the rocks`
 
 Your generation settings will have a **Memory Depth**. This is the maximum number of chat messages that Agnai will scan for keywords.  
+Scenario definitions also have a **Scan scenario for memory triggers** switch, off by default. When enabled, that scenario’s text is scanned alongside recent messages without consuming Memory Depth. Scenarios replaced by a chat override are not scanned.
+
 It is important to remember this all happens in your browser.
 
 You can use `*` (matching any character zero or more times) and `?` (matching a single character) wildcards in your keywords, e.g.

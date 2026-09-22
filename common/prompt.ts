@@ -101,6 +101,7 @@ export type PromptOpts = {
   chatEmbeds: Memory.UserEmbed<{ name: string }>[]
   userEmbeds: Memory.UserEmbed[]
   resolvedScenario: string
+  memoryScenario?: string
   modelFormat?: ModelFormat
   jsonValues: Record<string, any> | undefined
   contextBuffer?: number
@@ -503,6 +504,7 @@ type PromptPartsOptions = Pick<
   | 'chatEmbeds'
   | 'userEmbeds'
   | 'resolvedScenario'
+  | 'memoryScenario'
   | 'props'
   | 'books'
 >
@@ -613,7 +615,12 @@ export async function buildPromptPlaceholders(
     if (opts.book) books.push(opts.book)
 
     parts.memory = await buildMemoryPrompt(
-      { ...opts, books, lines: lines.map((l) => (typeof l === 'string' ? l : l.msg)) },
+      {
+        ...opts,
+        books,
+        scenario: replace(opts.memoryScenario || '', char.name),
+        lines: lines.map((l) => (typeof l === 'string' ? l : l.msg)),
+      },
       encoder
     )
 
@@ -1061,8 +1068,20 @@ export type TrimOpts = {
 }
 
 /**
- * Resolve scenario for the chat based on chat, main character and scenario settings.
+ * Collect opted-in scenario text that contributes to the chat scenario.
  */
+export function resolveMemoryScenario(chat: AppSchema.Chat, books: AppSchema.ScenarioBook[]) {
+  if (chat.overrides) return ''
+  const overwrite = books.find((book) => book.overwriteCharacterScenario)
+  return books
+    .filter(
+      (book) => book.scanForMemory && (!book.overwriteCharacterScenario || book === overwrite)
+    )
+    .map((book) => book.text || '')
+    .join('\n')
+}
+
+/** Resolve the scenario from chat, character, and scenario definitions. */
 export function resolveScenario(
   chat: AppSchema.Chat,
   mainChar: AppSchema.Character,

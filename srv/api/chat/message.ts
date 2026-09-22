@@ -8,7 +8,7 @@ import { AppSchema } from '../../../common/types/schema'
 import { v4 } from 'uuid'
 import { getScenarioEventType } from '/common/scenario'
 import { parsePartialJson, round, stripLeadingSpeakerName } from '/common/util'
-import { JsonOutput, resolveScenario } from '/common/prompt'
+import { JsonOutput, resolveScenario, resolveMemoryScenario } from '/common/prompt'
 import { mapPresetsToAdapter } from '/common/presets'
 import { isDefaultTemplate, templates } from '/common/presets/templates'
 import { Response } from 'express'
@@ -272,6 +272,7 @@ export const generateMessageV2 = handle(async (req, res) => {
         settings: ents.preset,
         book: ents.book,
         resolvedScenario: ents.resolvedScenario,
+        memoryScenario: ents.memoryScenario,
         chatSchema: schema,
         signal,
       },
@@ -823,6 +824,7 @@ async function getMessageEntities(req: AppRequest<GenRequest>, res: Response) {
       members: [] as string[],
       book: undefined,
       resolvedScenario: undefined,
+      memoryScenario: undefined,
       senderId: body.kind === 'self' ? 'anon' : undefined,
       socketIds: [req.socketId],
       sse: (payload: object) => {
@@ -922,6 +924,7 @@ async function getMessageEntities(req: AppRequest<GenRequest>, res: Response) {
     members,
     book,
     resolvedScenario,
+    memoryScenario: resolveMemoryScenario(chat, chatScenarios),
     senderId: body.kind === 'self' ? req.userId : undefined,
     socketIds: version >= 2 ? members.filter((mem) => mem !== req.userId) : members,
     sse: (payload: object) => {

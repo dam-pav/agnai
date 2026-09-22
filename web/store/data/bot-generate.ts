@@ -14,6 +14,7 @@ import {
   PromptOpts,
   registerTemplateLocator,
   resolveScenario,
+  resolveMemoryScenario,
   TickHandler,
 } from '/common/prompt'
 import { parseTemplate } from '/common/template-parser'
@@ -666,6 +667,7 @@ async function getActivePromptOptions(
     messages: entities.messages,
     lastMessage: props.lastMessage?.date || '',
     resolvedScenario,
+    memoryScenario: resolveMemoryScenario(entities.chat, entities.scenarios || []),
     jsonValues: props.json,
   }
 
@@ -801,6 +803,7 @@ async function createActiveChatPrompt(opts: GenerateOpts) {
     chatEmbeds,
     userEmbeds,
     resolvedScenario,
+    memoryScenario: resolveMemoryScenario(entities.chat, entities.scenarios || []),
     jsonValues: props.json,
     contextBuffer: entities.settings.maxTokens,
     props: entities.props,

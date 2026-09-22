@@ -405,6 +405,7 @@ export namespace AppSchema {
     description?: string
     text: string
     overwriteCharacterScenario: boolean
+    scanForMemory?: boolean
     instructions?: string
     memoryBookIds?: string[]
     defaultCharacterIds?: string[]

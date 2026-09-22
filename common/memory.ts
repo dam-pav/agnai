@@ -10,6 +10,7 @@ export type MemoryOpts = {
   char: AppSchema.Character
   settings?: Partial<AppSchema.UserGenPreset>
   books?: Array<AppSchema.MemoryBook | undefined>
+  scenario?: string
   lines: string[]
   impersonate?: AppSchema.Character
   members: AppSchema.Profile[]
@@ -76,7 +77,7 @@ export async function buildMemoryPrompt(opts: MemoryOpts, encoder: TokenCounter)
 
   const entries = getEnabledEntriesFromBooks(opts.books)
 
-  const matches = await findAllMatches(entries, opts.lines, ctx)
+  const matches = await findAllMatches(entries, opts.lines, ctx, opts.scenario)
   matches.sort(byPriorityThenAge)
 
   const allowed = await getMatchesWithinBudget(matches, ctx)
@@ -135,10 +136,13 @@ function getEnabledEntriesFromBooks(books: Array<AppSchema.MemoryBook | undefine
 async function findAllMatches(
   entries: AppSchema.MemoryEntry[],
   lines: string[],
-  ctx: MemoryPromptContext
+  ctx: MemoryPromptContext,
+  scenario?: string
 ) {
   const matches: Match[] = []
   const history = lines.slice(-ctx.depth).reverse() // oldest messages last
+
+  if (scenario) history.push(scenario)
 
   for (const entry of entries) {
     const match = await findMatchWithLowestAge(entry, history, ctx)

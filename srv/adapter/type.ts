@@ -102,6 +102,7 @@ export type GenerateRequestV2 = {
   impersonate?: AppSchema.Character
   book?: AppSchema.MemoryBook
   resolvedScenario?: string
+  memoryScenario?: string
 
   jsonSchema?: { fields: JsonField[]; entities: StructureEntities }
   jsonValues?: Record<string, any>

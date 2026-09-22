@@ -57,6 +57,7 @@
         "description": { "type": "string" },
         "text": { "type": "string" },
         "overwriteCharacterScenario": { "type": "boolean" },
+        "scanForMemory": { "type": "boolean", "default": false },
         "memoryBookIds": { "type": "array", "items": { "type": "string" } },
         "defaultCharacterIds": { "type": "array", "items": { "type": "string" } },
         "entries": {

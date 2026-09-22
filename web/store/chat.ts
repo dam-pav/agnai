@@ -1,4 +1,9 @@
-import { createPromptParts, Prompt, resolveScenario } from '../../common/prompt'
+import {
+  createPromptParts,
+  Prompt,
+  resolveScenario,
+  resolveMemoryScenario,
+} from '../../common/prompt'
 import { getEncoder } from '../../common/tokenize'
 import { AppSchema } from '../../common/types/schema'
 import { EVENTS, events } from '../emitter'
@@ -585,6 +590,7 @@ export const chatStore = createStore<ChatState>('chat', {
           chatEmbeds: [],
           userEmbeds: [],
           resolvedScenario,
+          memoryScenario: resolveMemoryScenario(entities.chat, entities.scenarios || []),
           jsonValues: path.reduce((prev, curr) => Object.assign(prev, curr.json?.values || {}), {}),
         },
         encoder

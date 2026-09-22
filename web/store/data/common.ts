@@ -10,6 +10,8 @@ import { ChatMessageExt } from '../message'
 import { MsgAttachment } from '/srv/adapter/type'
 import { simplifyPreset } from '/common/prompt'
 import { resolveChatPath } from '/common/chat'
+import { memoryApi } from './memory'
+import { scenarioApi } from './scenario'
 
 export type PromptEntities = NonNullable<Awaited<ReturnType<typeof getAuthedPromptEntities>>> & {
   lastMessage?: { msg: string; date: string; id: string; parent?: string }
@@ -81,6 +83,32 @@ export async function getPromptEntities(opts?: { messageId?: string }): Promise<
   const entities = getAuthedPromptEntities(opts)
 
   if (!entities) throw new Error(`Could not collate data for prompting`)
+
+  // Generation runs in the browser, so it must not rely on books cached at login.
+  // Read saved definitions for both generation and prompt previews.
+  const bookIds = new Set(
+    (entities.chat.memoryId || '')
+      .split(',')
+      .map((id) => id.trim())
+      .filter(Boolean)
+  )
+  const scenarioIds = entities.chat.scenarioIds || []
+  const [books, scenarios] = await Promise.all([
+    bookIds.size ? memoryApi.getBooks() : undefined,
+    scenarioIds.length ? scenarioApi.getScenarios() : undefined,
+  ])
+
+  if (books?.error) throw new Error(`Could not load memory books: ${books.error}`)
+  if (scenarios?.error) throw new Error(`Could not load scenarios: ${scenarios.error}`)
+
+  if (books?.result) {
+    entities.books = books.result.books.filter((book) => bookIds.has(book._id))
+  }
+  if (scenarios?.result) {
+    entities.scenarios = scenarios.result.scenarios.filter((scenario) =>
+      scenarioIds.includes(scenario._id)
+    )
+  }
 
   const conn = getPresetConnection({ ...entities.settings }, entities.user.providers)
   const sub = getPresetSubscription(conn.preset)
