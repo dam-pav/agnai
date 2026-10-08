@@ -83,6 +83,13 @@ Windows: `C:\Users\sceuick\.agnai`.
 
 Fork image: `docker run -dt --restart=always -p 3001:3001 ghcr.io/dam-pav/agnaistic:latest`
 
+For Portainer with Docker Standalone or the Compose CLI, configurable UID/GID,
+and shared network storage for all persistent data (including MongoDB), use
+[`docker-compose.advanced.yml`](docker-compose.advanced.yml) with
+[`.env.advanced.example`](.env.advanced.example). See the
+[setup and migration guide](docs/docker-compose.advanced.md) for Portainer variable
+imports, Swarm distinctions, share validation, and migrating an existing deployment.
+
 The fork publishes `ghcr.io/dam-pav/agnaistic` from the `dev` branch using
 `.github/workflows/ghcr.yml`. The workflow can also be started manually from the GitHub Actions
 page and publishes version tags matching `v*`.

@@ -1,0 +1,109 @@
+# Target: Portainer with Docker Standalone, or the Docker Compose CLI (not Swarm).
+# Portainer: import a completed .env.advanced.example as stack variables.
+# Compose CLI: copy it to .env. Prepare the storage directories before deploying.
+# See docs/docker-compose.advanced.md for permissions and data migration.
+services:
+  agnai:
+    image: ${AGNAI_IMAGE:-ghcr.io/dam-pav/agnaistic:latest}
+    restart: unless-stopped
+    user: '${PUID:-1000}:${PGID:-1000}'
+    # Start Node directly so arbitrary UIDs do not need a writable pnpm home.
+    entrypoint: ['node']
+    command: ['srv/start.js']
+    ports:
+      - '${APP_BIND_ADDRESS:-0.0.0.0}:${APP_PORT:-3001}:3001'
+    environment:
+      DB_HOST: mongo
+      DB_PORT: '27017'
+      DB_NAME: ${DB_NAME:-agnai}
+      INITIAL_USER: ${INITIAL_USER:-admin}
+      INITIAL_PASSWORD: ${INITIAL_PASSWORD:?Set INITIAL_PASSWORD in .env}
+      JWT_SECRET: ${JWT_SECRET:?Set a stable JWT_SECRET in .env}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      PORT: '3001'
+      APP_HOST: '0.0.0.0'
+      REDIS_HOST: redis
+      REDIS_PORT: '6379'
+      JSON_FOLDER: /app/db
+      ASSET_FOLDER: /app/dist/assets
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3001/healthcheck').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 60s
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - type: bind
+        source: ${DATA_ROOT:?Set DATA_ROOT to an existing absolute host path}/appdb
+        target: /app/db
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${DATA_ROOT:?Set DATA_ROOT to an existing absolute host path}/assets
+        target: /app/assets
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${DATA_ROOT:?Set DATA_ROOT to an existing absolute host path}/distassets
+        target: /app/dist/assets
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${DATA_ROOT:?Set DATA_ROOT to an existing absolute host path}/extras
+        target: /app/extras
+        bind:
+          create_host_path: false
+    networks:
+      - backend
+
+  mongo:
+    image: ${MONGO_IMAGE:-mongo:8}
+    restart: unless-stopped
+    user: '${MONGO_UID:-999}:${MONGO_GID:-999}'
+    environment:
+      # mongosh needs a writable home when using an arbitrary numeric UID.
+      HOME: /tmp
+    volumes:
+      - type: bind
+        source: ${MONGO_DATA_PATH:-${DATA_ROOT:?Set DATA_ROOT in .env}/dbdata}
+        target: /data/db
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${MONGO_CONFIG_PATH:-${DATA_ROOT:?Set DATA_ROOT in .env}/dbconfig}
+        target: /data/configdb
+        bind:
+          create_host_path: false
+    healthcheck:
+      test: ['CMD', 'mongosh', '--quiet', '--eval', 'quit(db.adminCommand({ ping: 1 }).ok ? 0 : 1)']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - backend
+
+  # Redis carries transient websocket messages; durable data lives in MongoDB.
+  redis:
+    image: ${REDIS_IMAGE:-redis:7}
+    restart: unless-stopped
+    command: ['redis-server', '--save', '', '--appendonly', 'no']
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - backend
+
+networks:
+  backend:
