@@ -117,6 +117,52 @@ validate storage durability or recovery from network failures. Local bind-mount
 smoke tests can verify container permissions and recreation persistence, but
 validation of the target network resource requires running the checks on that share.
 
+## MongoDB kernel compatibility
+
+Some MongoDB 8 images refuse to start on Linux kernels 6.19 and later because of
+an rseq incompatibility affecting TCMalloc's per-CPU caches. Ubuntu uses a kernel
+version scheme that can also cause patched kernels to be rejected. MongoDB tracks
+the Ubuntu detection fix in
+[SERVER-131779](https://jira.mongodb.org/browse/SERVER-131779), with 8.0.35 listed
+as a fixed version. Confirm that a fixed image is published before selecting it;
+changing the container image does not change the host kernel.
+
+For this specific startup error, first test the per-thread cache fallback on the
+Docker host without mounting your migrated database:
+
+```sh
+docker run --rm --user 1004:1002 \
+  -e GLIBC_TUNABLES=glibc.pthread.rseq=1 \
+  --entrypoint mongod mongo:8 --version
+```
+
+Use your selected MongoDB image and UID/GID if they differ. If this succeeds, set
+`MONGO_GLIBC_TUNABLES=glibc.pthread.rseq=1` in your CLI `.env` or Portainer stack
+variables, then redeploy with this Compose file. Portainer variables are passed
+to MongoDB through the `GLIBC_TUNABLES` mapping in this file; adding a variable to
+the UI without that mapping does not change the container environment. Recreate
+the container to apply the setting; restarting it alone is insufficient.
+
+MongoDB's [TCMalloc documentation](https://www.mongodb.com/docs/manual/administration/tcmalloc-performance/)
+explains that glibc's rseq registration prevents TCMalloc from using per-CPU caches
+and causes it to use per-thread caches. Setting `glibc.pthread.rseq=1` requests
+this fallback, avoiding the affected allocator path at a potential performance
+cost. The default here remains `glibc.pthread.rseq=0`, matching the MongoDB image's
+per-CPU cache configuration. After upgrading to a compatible MongoDB image and
+kernel, you can restore that default and verify startup again.
+
+After redeployment, check MongoDB logs and container health. To confirm the
+fallback, run the following inside the MongoDB container:
+
+```sh
+mongosh --quiet --eval 'db.serverStatus().tcmalloc.usingPerCPUCaches'
+```
+
+It should report `false` with the fallback active. This addresses the allocator
+startup error; continue validating the migrated database and network storage as
+described above. Keep the migration on MongoDB 8 rather than downgrading the
+database files to an older major version.
+
 ## Migrating existing data
 
 Bind mounts do not automatically import the existing named volumes. Stop the old

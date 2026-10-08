@@ -72,6 +72,9 @@ services:
     environment:
       # mongosh needs a writable home when using an arbitrary numeric UID.
       HOME: /tmp
+      # Set to glibc.pthread.rseq=1 for the documented per-thread cache fallback.
+      # See the kernel compatibility section in docs/docker-compose.advanced.md.
+      GLIBC_TUNABLES: ${MONGO_GLIBC_TUNABLES:-glibc.pthread.rseq=0}
     volumes:
       - type: bind
         source: ${MONGO_DATA_PATH:-${DATA_ROOT:?Set DATA_ROOT in .env}/dbdata}
