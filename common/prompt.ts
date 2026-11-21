@@ -519,7 +519,12 @@ export async function buildPromptPlaceholders(
     const sender = opts.impersonate ? opts.impersonate.name : opts.sender?.handle || 'You'
 
     const replace = (value: string, botName?: string) =>
-      placeholderReplace(value, botName || opts.replyAs.name, sender)
+      // Resolve before persona text is captured in system message blocks/sections.
+      // Unlike {{char}}, this always refers to the chat's main character.
+      placeholderReplace(value, botName || opts.replyAs.name, sender).replace(
+        /{{\s*(?:mainchar|mainbot)\s*}}/gi,
+        () => char.name
+      )
 
     const parts: PromptPlaceholders = {
       systemPrompt: opts.settings?.systemPrompt || '',

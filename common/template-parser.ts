@@ -145,6 +145,7 @@ type HolderDefinition =
   | { value: Holder }
 
 const SAFE_PART_HOLDERS: { [key in Holder | 'roll']?: boolean } = {
+  'main-char': true,
   char: true,
   user: true,
   chat_age: true,
