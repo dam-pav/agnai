@@ -1,3 +1,5 @@
+import { validateResolvedVariables } from '/common/chat-variables'
+import { resolveChatVariables } from '../../db/variables'
 import { assertValid } from '/common/valid'
 import { config } from '../../config'
 import { store } from '../../db'
@@ -22,6 +24,9 @@ export const updateChat = handle(async ({ params, body, user, userId }) => {
       useOverrides: 'boolean?',
       userEmbedId: 'string?',
       scenarioStates: ['string?'],
+      variables: ['any?'],
+      refreshVariables: 'boolean?',
+      variableUpdatesDisabled: 'boolean?',
       systemPrompt: 'string?',
       postHistoryInstructions: 'string?',
       imageSource: 'string?',
@@ -46,7 +51,11 @@ export const updateChat = handle(async ({ params, body, user, userId }) => {
     }
   }
 
+  if (body.variables) validateResolvedVariables(body.variables)
+
   const update: PartialUpdate<AppSchema.Chat> = {
+    variables: body.variables ?? prev.variables,
+    variableUpdatesDisabled: body.variableUpdatesDisabled ?? prev.variableUpdatesDisabled,
     name: body.name ?? prev.name,
     mode: body.mode ?? prev.mode,
     adapter: body.adapter ?? prev.adapter,
@@ -78,6 +87,8 @@ export const updateChat = handle(async ({ params, body, user, userId }) => {
     update.postHistoryInstructions = body.postHistoryInstructions || ''
   }
 
+  if (body.refreshVariables)
+    update.variables = await resolveChatVariables({ ...prev, ...update } as AppSchema.Chat)
   const chat = await store.chats.update(id, update)
   return chat
 })
@@ -106,7 +117,14 @@ export const updateMessage = handle(async ({ body, params, userId }) => {
 
 export const swapMessage = handle(async ({ body, params, userId }) => {
   assertValid(
-    { imagePrompt: 'string?', msg: 'string?', extras: ['string?'], retries: ['string?'] },
+    {
+      imagePrompt: 'string?',
+      msg: 'string?',
+      extras: ['string?'],
+      retries: ['string?'],
+      json: 'any?',
+      retryJson: ['any?'],
+    },
     body
   )
 
@@ -119,6 +137,8 @@ export const swapMessage = handle(async ({ body, params, userId }) => {
     imagePrompt: body.imagePrompt || prev.msg.imagePrompt,
     msg: body.msg ?? prev.msg.msg,
     retries: body.retries,
+    json: 'json' in body ? body.json : prev.msg.json,
+    retryJson: body.retryJson ?? prev.msg.retryJson,
     extras: body.extras || prev.msg.extras,
   }
 
@@ -129,6 +149,8 @@ export const swapMessage = handle(async ({ body, params, userId }) => {
 
   sendMany(prev.chat?.memberIds.concat(prev.chat.userId), {
     type: 'message-swapped',
+    json: message?.json,
+    retryJson: message?.retryJson,
     chatId: prev.chat._id,
     messageId: params.id,
     imagePrompt: body.imagePrompt || prev.msg.imagePrompt,
@@ -147,6 +169,7 @@ export const updateMessageProps = handle(async ({ body, params, userId }) => {
       extras: ['string?'],
       retries: ['string?'],
       json: 'any?',
+      retryJson: ['any?'],
       characterId: 'string?',
       userId: 'string?',
       name: 'string?',
@@ -170,6 +193,7 @@ export const updateMessageProps = handle(async ({ body, params, userId }) => {
   if (body.extras) update.extras = body.extras
   if (body.retries) update.retries = body.retries
   if (body.json) update.json = body.json
+  if (body.retryJson) update.retryJson = body.retryJson
   if (body.characterId) update.characterId = body.characterId
   if (body.userId) update.userId = body.userId
   if (body.name) update.name = body.name

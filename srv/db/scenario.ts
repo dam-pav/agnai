@@ -27,6 +27,7 @@ export async function createScenario(userId: string, scenario: NewScenario) {
     instructions: scenario.instructions,
     memoryBookIds: scenario.memoryBookIds || [],
     defaultCharacterIds: scenario.defaultCharacterIds || [],
+    variables: scenario.variables,
     entries: scenario.entries.map((entry) => ({
       name: entry.name,
       requires: entry.requires,
@@ -55,6 +56,7 @@ export async function updateScenario(userId: string, scenarioId: string, scenari
         instructions: scenario.instructions,
         memoryBookIds: scenario.memoryBookIds || [],
         defaultCharacterIds: scenario.defaultCharacterIds || [],
+        variables: scenario.variables,
         entries: scenario.entries,
         states: scenario.states,
       },

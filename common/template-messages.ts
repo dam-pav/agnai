@@ -6,7 +6,24 @@ import { findLast } from './util'
 import { GenerateRequestV2 } from '/srv/adapter/type'
 
 export async function toChatMessages(req: GenerateRequestV2, counter: TokenCounter) {
-  const assembled = await assemblePrompt(req, counter, true)
+  const structured = !!req.jsonSchema?.fields.some((field) => !field.disabled)
+  const structuredInstruction =
+    req.kind === 'continue'
+      ? 'Continue the previous assistant reply. Return a JSON object matching the response schema.'
+      : 'Return the next reply as a JSON object matching the response schema.'
+  // A plaintext assistant prefill is incompatible with JSON grammar sampling in llama.cpp.
+  const parts = structured
+    ? {
+        ...req.parts,
+        prefill: '',
+        post: req.parts.post
+          .filter(
+            (text) => text.trim() !== `${req.replyAs.name}:` && text !== structuredInstruction
+          )
+          .concat(structuredInstruction),
+      }
+    : req.parts
+  const assembled = await assemblePrompt(structured ? { ...req, parts } : req, counter, true)
 
   const { sections } = assembled
   const {
@@ -14,7 +31,7 @@ export async function toChatMessages(req: GenerateRequestV2, counter: TokenCount
     sections: { post, post_system },
   } = sections
 
-  const prefill = (req.parts.prefill || '').trim()
+  const prefill = (parts.prefill || '').trim()
 
   const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: any }> = []
   const systemPrompt = strictSystem.join('').trim().replace(/\n\n+/g, '\n\n')
@@ -33,7 +50,10 @@ export async function toChatMessages(req: GenerateRequestV2, counter: TokenCount
   // }
 
   if (req.systemPrompt) {
-    messages.push({ role: 'system', content: req.systemPrompt })
+    messages.push({
+      role: 'system',
+      content: [req.systemPrompt, req.parts.variableContext].filter(Boolean).join('\n\n'),
+    })
   } else if (systemPrompt || postSystem) {
     const joined = [systemPrompt || '', postSystem || ''].filter((m) => !!m.trim()).join('\n\n')
     messages.push({ role: 'system', content: joined.trim().replace(/\n\n+/g, '\n\n') })
@@ -119,9 +139,14 @@ export async function toChatMessages(req: GenerateRequestV2, counter: TokenCount
   // }
 
   const ensureLastRoleIsUser = req.settings?.postUserRole || req.subscription?.preset?.postUserRole
-  const role = ensureLastRoleIsUser ? 'user' : 'assistant'
-  if (postContent || prefill) {
-    messages.push({ role, content: `${postContent}${prefill}` })
+  const role = structured || ensureLastRoleIsUser ? 'user' : 'assistant'
+  if (structured || postContent || prefill) {
+    const content = structured
+      ? postContent.includes(structuredInstruction)
+        ? postContent
+        : [postContent, structuredInstruction].filter(Boolean).join('\n\n')
+      : `${postContent}${prefill}`
+    messages.push({ role, content })
   }
 
   if (req.settings?.skipRoleMerging) {

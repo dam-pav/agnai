@@ -957,8 +957,8 @@ function getPlaceholder(
 
     const jsonValues = opts.jsonValues || opts.history?.slice(-1)[0]?.json || {}
     const fieldName = flags.jsonAliases[target] || target || 'not_available'
-    const value = jsonValues?.[fieldName] || ''
-    return value
+    const value = jsonValues?.[fieldName] ?? ''
+    return String(value)
   }
 
   if (node.value.startsWith('var.') || node.value.startsWith('vars.')) {
@@ -1026,8 +1026,8 @@ function getPlaceholder(
 
       const jsonValues = opts.jsonValues || opts.history?.slice(-1)[0]?.json || {}
       const fieldName = flags.jsonAliases[target] || target || 'not_available'
-      const value = jsonValues?.[fieldName] || ''
-      return value
+      const value = jsonValues?.[fieldName] ?? ''
+      return String(value)
     }
 
     case 'post': {

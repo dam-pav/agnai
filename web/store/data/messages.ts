@@ -34,9 +34,17 @@ export async function swapMessage(
   msg: AppSchema.ChatMessage,
   text: string,
   retries: AppSchema.ChatMessage['retries'],
-  embed?: string
+  embed?: string,
+  variant?: {
+    json?: AppSchema.ChatMessage['json'] | null
+    retryJson?: AppSchema.ChatMessage['retryJson']
+  }
 ) {
-  return swapMessageProps(msg, { msg: text, retries })
+  return swapMessageProps(msg, {
+    msg: text,
+    retries,
+    ...(variant || {}),
+  } as Partial<AppSchema.ChatMessage>)
 }
 
 export async function createMessage(opts: {
@@ -92,6 +100,7 @@ export async function createMessage(opts: {
     ooc: opts.kind === 'ooc' || opts.kind === 'send-event:ooc',
   })
 
+  preMsg.json = opts.json
   localEmit({ type: 'message-created', msg: preMsg, chatId: opts.chatId })
 
   const result = await api.post(`/chat/${opts.chatId}/send`, {

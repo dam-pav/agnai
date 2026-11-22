@@ -47,6 +47,52 @@
       "required": ["name", "requires", "assigns", "type", "text", "trigger"],
       "additionalProperties": false
     },
+    "VariableBand": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "min": { "type": "number" },
+        "max": { "type": "number" },
+        "text": { "type": "string" }
+      },
+      "required": ["id", "min", "max", "text"]
+    },
+    "VariableModifier": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "condition": { "type": "string" },
+        "delta": { "type": "number" }
+      },
+      "required": ["id", "name", "condition", "delta"]
+    },
+    "VariableDefinition": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "min": { "type": "number" },
+        "max": { "type": "number" },
+        "precision": { "type": "integer", "minimum": 0, "maximum": 6 },
+        "revision": { "type": "integer", "minimum": 1 },
+        "bands": { "type": "array", "items": { "$ref": "#/definitions/VariableBand" } },
+        "modifiers": { "type": "array", "items": { "$ref": "#/definitions/VariableModifier" } }
+      },
+      "required": ["name", "min", "max", "precision", "revision", "bands", "modifiers"]
+    },
+    "VariableInstance": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "classId": { "type": "string" },
+        "name": { "type": "string" },
+        "initial": { "type": "number" },
+        "classSnapshot": { "$ref": "#/definitions/VariableDefinition" },
+        "bands": { "type": "array", "items": { "$ref": "#/definitions/VariableBand" } },
+        "modifiers": { "type": "array", "items": { "$ref": "#/definitions/VariableModifier" } }
+      },
+      "required": ["id", "classId", "name", "initial", "classSnapshot"]
+    },
     "ScenarioBook": {
       "type": "object",
       "properties": {
@@ -60,6 +106,7 @@
         "scanForMemory": { "type": "boolean", "default": false },
         "memoryBookIds": { "type": "array", "items": { "type": "string" } },
         "defaultCharacterIds": { "type": "array", "items": { "type": "string" } },
+        "variables": { "type": "array", "items": { "$ref": "#/definitions/VariableInstance" } },
         "entries": {
           "type": "array",
           "items": { "$ref": "#/definitions/ScenarioEvent" }

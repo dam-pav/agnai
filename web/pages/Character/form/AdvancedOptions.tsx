@@ -1,3 +1,4 @@
+import { VariableInstances } from '/web/shared/VariableInstances'
 import { Component } from 'solid-js'
 import { CharacterSchema } from '../CharacterSchema'
 import { CharEditor } from '../editor'
@@ -9,6 +10,12 @@ import TextInput from '/web/shared/TextInput'
 export const AdvancedOptions: Component<{ editor: CharEditor }> = (props) => {
   return (
     <>
+      <Card class="flex flex-col gap-2">
+        <VariableInstances
+          value={props.editor.state.variables}
+          update={(variables) => props.editor.update('variables', variables)}
+        />
+      </Card>
       <Card class="flex flex-col gap-2">
         <CharacterSchema
           characterId={props.editor.state.editId}

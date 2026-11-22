@@ -78,6 +78,7 @@ const App: Component = () => {
       <Route path="/oauth/patreon" component={PatreonOauth} />
       <Route path="/profile" component={() => <ProfilePage />} />
       <Route path="/settings" component={() => <Settings />} />
+      <Route path="/variables" component={lazy(() => import('./pages/Variables'))} />
       <Route path="/memory" component={lazy(() => import('./pages/Memory/Library'))} />
       <Route path="/memory/:id" component={lazy(() => import('./pages/Memory/EditMemoryPage'))} />
       <Route path="/terms-of-service" component={lazy(() => import('./pages/TermsOfService'))} />

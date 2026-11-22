@@ -63,6 +63,7 @@ export type ChatState = {
 }
 
 export type ChatRightPane =
+  | 'variables'
   | 'character'
   | 'preset'
   | 'participants'
@@ -76,7 +77,10 @@ export type ImportChat = {
   greeting: string
   scenario: string
   sampleChat: string
-  messages: Array<{ msg: string; characterId?: string; userId?: string }>
+  variables?: AppSchema.Chat['variables']
+  variableUpdatesDisabled?: boolean
+  treeLeafId?: string
+  messages: Array<Partial<AppSchema.ChatMessage> & { msg: string }>
   useOverrides?: boolean
 }
 

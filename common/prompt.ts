@@ -13,8 +13,15 @@ import { ModelFormat, replaceArrayTags, replaceTags } from './presets/templates'
 import { OPENAI_CONTEXTS } from './presets/openai'
 import { NOVEL_MODELS } from './presets/novel'
 import { extractReasoning } from './reasoning'
+import type { VariableResult } from './chat-variables'
 import { runPresetParsers } from './chat'
-export type JsonOutput = { values: any; response: string; history: string; imageCaption: string }
+export type JsonOutput = {
+  variables?: VariableResult
+  values: any
+  response: string
+  history: string
+  imageCaption: string
+}
 export type TickHandler<T = JsonOutput> = (
   response: string,
   state: InferenceState,
@@ -41,6 +48,7 @@ export type PromptLine = {
 }
 
 export type PromptPlaceholders = {
+  variableContext?: string
   scenario?: string
   greeting?: string
   sampleChat?: string[]
@@ -81,6 +89,7 @@ export type PromptConfig = {
 }
 
 export type PromptOpts = {
+  variableContext?: string
   kind?: GenerateRequestV2['kind']
   chat: AppSchema.Chat
   char: AppSchema.Character
@@ -438,6 +447,14 @@ export async function injectPlaceholders(template: string, inject: InjectOpts) {
     parts.prefill = await parseTemplate(parts.prefill, { ...templateOpts }).then((t) => t.parsed)
   }
 
+  if (parts.variableContext) {
+    templateOpts.parts = {
+      ...parts,
+      props: { ...parts.props, agnai_variables_context: parts.variableContext },
+    }
+    template = '<system>{{vars.agnai_variables_context}}</system>\n' + template
+  }
+
   const result = await parseTemplate(template, {
     ...templateOpts,
     limit: {
@@ -507,6 +524,7 @@ type PromptPartsOptions = Pick<
   | 'memoryScenario'
   | 'props'
   | 'books'
+  | 'variableContext'
 >
 
 export async function buildPromptPlaceholders(
@@ -527,6 +545,7 @@ export async function buildPromptPlaceholders(
       )
 
     const parts: PromptPlaceholders = {
+      ...(opts.variableContext ? { variableContext: opts.variableContext } : {}),
       systemPrompt: opts.settings?.systemPrompt || '',
       persona: replace(
         formatCharacter(

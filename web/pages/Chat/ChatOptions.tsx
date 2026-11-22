@@ -129,6 +129,9 @@ const ChatOptions: Component<{
               <em>Loading, please wait...</em>
             </Show>
           </Item>
+          <Item onClick={() => props.togglePane('variables')}>
+            <Sliders /> Variables
+          </Item>
           <Item onClick={() => props.togglePane('memory')} hide={!isOwner()}>
             <Book /> Memory
           </Item>

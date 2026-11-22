@@ -99,6 +99,19 @@ export function getThirdPartyPayload(opts: MinOpts, stops: string[] = []) {
 }
 
 function getBasePayload(opts: MinOpts, stops: string[] = []) {
+  if (Array.isArray(opts.jsonSchema))
+    opts = {
+      ...opts,
+      jsonSchema: {
+        fields: opts.jsonSchema,
+        entities: {
+          char: opts.char || 'Bot',
+          replyAs: opts.replyAs,
+          sender: opts.sender,
+          impersonate: opts.impersonate,
+        },
+      },
+    }
   const gen = opts.gen || opts.settings!
   const prompt = opts.prompt
   const messages = opts.messages
@@ -162,6 +175,13 @@ function getBasePayload(opts: MinOpts, stops: string[] = []) {
 
     if (gen.frequencyPenalty) {
       body.frequency_penalty = gen.frequencyPenalty
+    }
+    if (opts.jsonSchema) {
+      body.response_format = getJsonSchemaPayload(
+        opts.jsonSchema.fields,
+        'openai',
+        opts.jsonSchema.entities
+      )
     }
 
     return body
@@ -251,7 +271,11 @@ function getBasePayload(opts: MinOpts, stops: string[] = []) {
     }
 
     if (opts.jsonSchema) {
-      body.guided_json = json_schema
+      body.guided_json = getJsonSchemaPayload(
+        opts.jsonSchema.fields,
+        'guided_json',
+        opts.jsonSchema.entities
+      )
       body.guided_decoding_backend = 'outlines'
     }
 
@@ -308,7 +332,7 @@ function getBasePayload(opts: MinOpts, stops: string[] = []) {
     }
 
     if (opts.jsonSchema) {
-      const structure = toCompatStructured(opts, opts.jsonSchema)
+      const structure = toCompatStructured(opts, opts.jsonSchema.fields)
       payload.response_format = structure.format
     }
 
@@ -354,7 +378,9 @@ function getBasePayload(opts: MinOpts, stops: string[] = []) {
       stream: gen.streamResponse,
       token_healing: gen.tokenHealing,
       temperature_last: gen.minP ? !!gen.tempLast : false,
-      json_schema,
+      json_schema: opts.jsonSchema
+        ? getJsonSchemaPayload(opts.jsonSchema.fields, 'guided_json', opts.jsonSchema.entities)
+        : json_schema,
     }
 
     if (gen.dynatemp_range) {
@@ -787,10 +813,13 @@ export function toCompatStructured(opts: MinOpts, jsonSchema: any) {
     }
 
     prev[field.name] = {
-      type: type.type,
+      ...type,
+      type: type.type === 'bool' ? 'boolean' : type.type === 'enum' ? 'string' : type.type,
       ...rest,
     }
 
+    if (prev[field.name].maxLength !== undefined && +prev[field.name].maxLength! <= 0)
+      delete prev[field.name].maxLength
     return prev
   }, base)
 

@@ -70,6 +70,7 @@ export function exportCharacter(char: AppSchema.Character, target: 'tavern' | 'o
               persona: char.persona,
               appearance: char.appearance,
               json: char.json,
+              variables: char.variables,
               sprite: char.sprite,
             },
           },

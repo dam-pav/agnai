@@ -1,6 +1,6 @@
 import { AppSchema } from '../types'
 import { ResponseSchema } from '../types/library'
-import { JsonField } from '../prompt'
+import { JsonField, JsonOutput } from '../prompt'
 import { GenerationConfig, Schema, Type } from '@google/genai'
 import { jsonHydrator } from '../util'
 
@@ -54,6 +54,7 @@ type LlamaCppResponseSchema = {
   type: 'json_schema'
   schema: {
     strict: boolean
+    type: 'object'
     properties: Record<string, any>
     required: string[]
     additionalProperties: boolean
@@ -67,10 +68,10 @@ type OutboundJsonSchema<T extends JsonSchemaFormat> = T extends 'openai'
       type: 'json_schema'
       json_schema: {
         name: string
-        type: string
         strict: boolean
         schema: {
           strict: boolean
+          type: 'object'
           properties: Record<string, any>
           required: string[]
           additionalProperties: boolean
@@ -107,7 +108,7 @@ export function getJsonSchemaPayload<T extends JsonSchemaFormat>(
       type = 'string'
     }
 
-    const spec: any = { type, ...subtype }
+    const spec: any = { type: type === 'bool' ? 'boolean' : type, ...subtype }
     if (spec.maxLength !== undefined && spec.maxLength <= 0) {
       delete spec.maxLength
     }
@@ -123,6 +124,7 @@ export function getJsonSchemaPayload<T extends JsonSchemaFormat>(
         type: 'json_schema',
         schema: {
           strict: true,
+          type: 'object',
           properties: fields,
           required,
           additionalProperties: false,
@@ -136,10 +138,10 @@ export function getJsonSchemaPayload<T extends JsonSchemaFormat>(
         type: 'json_schema',
         json_schema: {
           name: 'response',
-          type: 'object',
           strict: true,
           schema: {
             strict: true,
+            type: 'object',
             properties: fields,
             required,
             additionalProperties: false,
@@ -166,13 +168,16 @@ export function getJsonSchemaPayload<T extends JsonSchemaFormat>(
 }
 
 function toResponseSchema(fields: JsonField[], entities: StructureEntities) {
-  const response = getResponseVariable(entities)
+  const response =
+    fields.find((field) => field.type.type === 'string' && field.name.endsWith("'s response"))
+      ?.name || getResponseVariable(entities)
+  const names = [...new Set([response, ...fields.map((field) => field.name)])]
 
   const schema: GeminiResponseSchema = {
     type: Type.OBJECT,
     properties: {},
-    propertyOrdering: [response].concat(fields.map((f) => f.name)),
-    required: [response].concat(fields.map((f) => f.name)),
+    propertyOrdering: names,
+    required: names,
   }
 
   const properties: Record<string, Schema> = {
@@ -227,6 +232,27 @@ export function getResponseVariable(entities: StructureEntities) {
   return `${char}'s response`
 }
 
+/** Dialogue stays unformatted in `msg`; response and history templates live in `json`. */
+export function getJsonDialogue(output: JsonOutput, entities: StructureEntities): string {
+  const response = output.values?.response ?? output.values?.[getResponseVariable(entities)]
+  return typeof response === 'string' ? response : output.response
+}
+
+export function continueJsonDialogue(
+  output: JsonOutput,
+  previous: string,
+  entities: StructureEntities,
+  hydrate: (value: any) => JsonOutput
+): JsonOutput {
+  const response = getJsonDialogue(output, entities)
+  const combined = response.startsWith(previous) ? response : `${previous} ${response}`.trim()
+  return hydrate({
+    ...output.values,
+    response: combined,
+    [getResponseVariable(entities)]: combined,
+  })
+}
+
 export function prepareJsonSchema(
   def: Ensure<AppSchema.Character['json']>,
   entities: StructureEntities,
@@ -255,7 +281,16 @@ export function prepareJsonSchema(
     jailbreak: '',
   }
 
-  const hydrator = jsonHydrator(nextSchema, entities, aliases)
+  const hydrate = jsonHydrator(nextSchema, entities, aliases)
+  const hydrator = (incoming: any): JsonOutput => {
+    const result = hydrate(incoming)
+    const responseKey = getResponseVariable(entities)
+    if (includeResponse && typeof result.values[responseKey] === 'string') {
+      result.values.response = result.values[responseKey]
+      delete result.values[responseKey]
+    }
+    return result
+  }
 
   return {
     names,

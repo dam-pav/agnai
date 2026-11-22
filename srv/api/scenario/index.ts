@@ -1,3 +1,4 @@
+import { validateVariableInstances } from '/common/chat-variables'
 import { Router } from 'express'
 import { store } from '../../db'
 import { loggedIn } from '../auth'
@@ -45,6 +46,7 @@ const validScenario = {
   instructions: 'string?',
   memoryBookIds: ['string?'],
   defaultCharacterIds: ['string?'],
+  variables: ['any?'],
   entries: [validEntry],
 } as const
 
@@ -91,6 +93,7 @@ export default router
 
 function assertScenario(body: any) {
   assertValid(validScenario, body)
+  if (body.variables) validateVariableInstances(body.variables)
   body.entries = body.entries.map((entry: any) => ({
     ...entry,
     trigger: assertTrigger(entry.trigger),

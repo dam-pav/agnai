@@ -440,6 +440,7 @@ export async function deleteUserAccount(userId: string) {
   await db('character').deleteMany({ userId })
   await db('memory').deleteMany({ userId })
   await db('scenario').deleteMany({ userId })
+  await db('variable-class').deleteMany({ userId })
   await db('gen-setting').deleteMany({ userId })
   await db('chat-message').deleteMany({ chatId: { $in: chats.map((ch) => ch._id) } })
   await db('chat-invite').deleteMany({ byUserId: userId })

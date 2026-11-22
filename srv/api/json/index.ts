@@ -13,6 +13,7 @@ const names = {
   presets: 'presets.json',
   memory: 'books.json',
   scenario: 'scenario.json',
+  variableClasses: 'variable-classes.json',
   characters: 'characters.json',
   chats: 'chats.json',
   trees: 'trees.json',
@@ -46,6 +47,7 @@ const loadState = handle(async (req) => {
     chats,
     trees,
     templates,
+    variableClasses: (await read(names.variableClasses)) || [],
   }
 })
 
@@ -68,6 +70,7 @@ const saveState = handle(async ({ body }) => {
   if (body.presets) await saveFile(names.presets, body.presets)
   if (body.chats) await saveFile(names.chats, body.chats)
   if (body.trees) await saveFile(names.trees, body.trees)
+  if (body.variableClasses) await saveFile(names.variableClasses, body.variableClasses)
   if (body.templates) await saveFile(names.templates, body.templates)
 
   return { success: true }

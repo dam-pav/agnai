@@ -1,3 +1,4 @@
+import { assertVariableSupport } from '/common/chat-variables'
 import { AIAdapter, getAdapter, isThirdPartyPreset } from '../../common/adapters'
 import { mapPresetsToAdapter, defaultPresets, getFallbackPreset } from '/common/presets'
 import { store } from '../db'
@@ -240,7 +241,7 @@ export async function createInferenceStream(opts: InferenceRequest) {
     placeholders: opts.placeholders,
     characters: {},
     lists: opts.lists,
-    jsonSchema: opts.jsonSchema,
+    jsonSchema: Array.isArray(opts.jsonSchema) ? opts.jsonSchema : opts.jsonSchema?.fields,
     imageData: opts.imageData,
     jsonValues: opts.jsonValues,
     signal: opts.signal,
@@ -328,6 +329,13 @@ export async function createChatStream(
   opts.settings = conn.preset
   const subscription = await getSubscriptionPreset(opts.user, !!guestSocketId, opts.settings)
   opts.subscription = subscription
+  if (
+    opts.chat.variables?.length &&
+    !opts.chat.variableUpdatesDisabled &&
+    opts.kind !== 'summary' &&
+    opts.kind !== 'chat-query'
+  )
+    assertVariableSupport(conn.service, conn.format, subscription?.preset?.jsonSchemaCapable)
 
   /**
    * Only use a JSON schema if:
@@ -390,6 +398,7 @@ export async function createChatStream(
         resolvedScenario: opts.resolvedScenario || '',
         memoryScenario: opts.memoryScenario,
         props: opts.parts.props,
+        variableContext: opts.parts.variableContext,
       },
       opts.lines,
       encoder
@@ -489,7 +498,8 @@ export async function createChatStream(
     impersonate: opts.impersonate,
     lastMessage: opts.lastMessage,
     imageData: opts.imageData,
-    jsonSchema: jsonSchema || opts.jsonSchema,
+    jsonSchema:
+      jsonSchema || (Array.isArray(opts.jsonSchema) ? opts.jsonSchema : opts.jsonSchema?.fields),
     reschemaPrompt: opts.reschemaPrompt,
     subscription,
     encoder,

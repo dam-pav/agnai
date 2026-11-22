@@ -1,3 +1,4 @@
+import { VariableInstances } from '/web/shared/VariableInstances'
 import { Component, For, Show, createEffect, createMemo, createSignal, on, onMount } from 'solid-js'
 import { characterStore, scenarioStore } from '../../store'
 import PageHeader from '../../shared/PageHeader'
@@ -145,6 +146,10 @@ const CreateScenario: Component = () => {
       <div class="text-lg font-bold">Scenario Details</div>
 
       <form class="flex flex-col gap-4" ref={ref}>
+        <VariableInstances
+          value={state.variables}
+          update={(variables) => setState('variables', variables)}
+        />
         <TextInput
           required
           label="Name"

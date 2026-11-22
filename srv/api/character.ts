@@ -1,3 +1,4 @@
+import { validateVariableInstances } from '/common/chat-variables'
 import { Router } from 'express'
 import { assertValid } from '/common/valid'
 import { store } from '../db'
@@ -34,6 +35,7 @@ const characterForm = {
   voice: 'string?',
   voiceDisabled: 'string?',
   tags: 'string?',
+  variables: 'any?',
   json: 'any?',
   prefill: 'string?',
 
@@ -60,6 +62,7 @@ const characterPost = {
   alternateGreetings: ['string?'],
   extensions: 'any?',
   insert: 'any?',
+  variables: 'any?',
   json: 'any?',
   folder: 'string?',
 } as const
@@ -109,6 +112,12 @@ const createCharacter = handle(async (req) => {
 
   const imageSettings = body.imageSettings ? JSON.parse(body.imageSettings) : undefined
   const json = body.json ? JSON.parse(body.json) : undefined
+  const variables = body.variables
+    ? typeof body.variables === 'string'
+      ? JSON.parse(body.variables)
+      : body.variables
+    : undefined
+  if (variables) validateVariableInstances(variables)
 
   const char = await store.characters.createCharacter(req.user?.userId!, {
     name: body.name,
@@ -135,6 +144,7 @@ const createCharacter = handle(async (req) => {
     insert: insert,
     imageSettings,
     json,
+    variables,
   })
 
   const filename = await entityUpload(
@@ -161,6 +171,7 @@ const editPartCharacter = handle(async ({ body, params, userId }) => {
   assertStrict({ type: characterPost }, body)
 
   const update: CharacterUpdate = body
+  if (update.variables) validateVariableInstances(update.variables)
 
   if (update.avatar?.startsWith('data:image/png;base64')) {
     const filename = await entityUploadBase64('char', id, update.avatar)
@@ -258,6 +269,12 @@ const editFullCharacter = handle(async (req) => {
 
   const imageSettings = body.imageSettings ? JSON.parse(body.imageSettings) : undefined
   const json = body.json ? JSON.parse(body.json) : undefined
+  const variables = body.variables
+    ? typeof body.variables === 'string'
+      ? JSON.parse(body.variables)
+      : body.variables
+    : undefined
+  if (variables) validateVariableInstances(variables)
 
   const update: CharacterUpdate = {
     name: body.name,
@@ -280,6 +297,7 @@ const editFullCharacter = handle(async (req) => {
     imageSettings,
     insert,
     json,
+    variables,
   }
 
   if (body.persona) {

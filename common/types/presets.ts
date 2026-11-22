@@ -68,6 +68,7 @@ export interface SubscriptionModelOption {
       | 'subLevel'
       | 'subDisabled'
       | 'subVisionModel'
+      | 'jsonSchemaCapable'
     > & {
       kind: 'submodel'
     }

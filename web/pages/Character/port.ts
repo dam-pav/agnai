@@ -159,6 +159,7 @@ export function jsonToCharacter(json: any): NewCharacter {
     voice: json.data.extensions?.agnai?.voice,
     insert: json.data.extensions?.depth_prompt,
     json: json.data.extensions?.agnai?.json,
+    variables: json.data.extensions?.agnai?.variables,
   }
 }
 

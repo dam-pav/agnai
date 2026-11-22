@@ -1,3 +1,6 @@
+import { resolveVariables } from '/common/chat-variables'
+import { variablesApi } from './variables'
+import { chatsApi } from './chats'
 import { getStore } from '../create'
 import { toastStore } from '../toasts'
 import { ModelFormat, replaceTags } from '/common/presets/templates'
@@ -16,6 +19,7 @@ import { scenarioApi } from './scenario'
 export type PromptEntities = NonNullable<Awaited<ReturnType<typeof getAuthedPromptEntities>>> & {
   lastMessage?: { msg: string; date: string; id: string; parent?: string }
   props: Record<string, string>
+  variableMessages: AppSchema.ChatMessage[]
 }
 
 export function getInferencePreset(
@@ -110,6 +114,32 @@ export async function getPromptEntities(opts?: { messageId?: string }): Promise<
     )
   }
 
+  if (!entities.chat.variables) {
+    const result = await variablesApi.list()
+    if (result.error) throw new Error(result.error)
+    const variables = resolveVariables(
+      [
+        entities.char,
+        ...Object.values(entities.characters || {}).filter(
+          (char) => entities.chat.characters?.[char._id] || char._id.startsWith('temp-')
+        ),
+        ...entities.scenarios,
+      ],
+      result.result?.classes || [],
+      entities.char.name
+    )
+    const saved = await chatsApi.editChat(entities.chat._id, { variables })
+    if (saved.error) throw new Error(saved.error)
+    entities.chat = { ...entities.chat, variables }
+    const state = getStore('chat').getState()
+    getStore('chat').setState({
+      details: {
+        ...state.details,
+        [entities.chat._id]: { ...state.details[entities.chat._id], chat: entities.chat },
+      },
+    })
+  }
+
   const conn = getPresetConnection({ ...entities.settings }, entities.user.providers)
   const sub = getPresetSubscription(conn.preset)
   const simple = simplifyPreset(entities.user, conn.preset, sub?.preset)
@@ -125,12 +155,13 @@ export async function getPromptEntities(opts?: { messageId?: string }): Promise<
   return {
     ...entities,
     props,
+    variableMessages: entities.messages,
     messages: entities.messages.filter((msg) => msg.ooc !== true && msg.adapter !== 'image'),
     lastMessage: getLastUserMessage(entities.messages),
   }
 }
 
-function getPresetSubscription(gen: Partial<AppSchema.GenSettings> | undefined) {
+export function getPresetSubscription(gen: Partial<AppSchema.GenSettings> | undefined) {
   if (!gen) return
 
   // If it's a 'preset (non-provider)' preset, check the `.service` property

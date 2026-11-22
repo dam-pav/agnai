@@ -1,3 +1,4 @@
+import { resolveVariables, validateResolvedVariables } from '/common/chat-variables'
 import type { ImportChat, NewChat } from '../chat'
 import { v4 } from 'uuid'
 import { AppSchema } from '../../../common/types/schema'
@@ -175,6 +176,16 @@ export async function createChat(characterId: string, props: NewChat) {
     )
   }
 
+  chat.variables = resolveVariables(
+    [
+      char,
+      ...chars.filter((item) => chat.characters?.[item._id]),
+      ...(await loadItem('scenario')).filter((item) => chat.scenarioIds?.includes(item._id)),
+    ],
+    await loadItem('variableClasses'),
+    char.name
+  )
+
   // If there is a greeting, parse it before persisting
   if (msg?.msg) {
     const profile = getStore('user').getState().profile
@@ -195,6 +206,7 @@ export async function createChat(characterId: string, props: NewChat) {
 }
 
 export async function importChat(characterId: string, props: ImportChat) {
+  if (props.variables) validateResolvedVariables(props.variables)
   for (const msg of props.messages) {
     if (msg.characterId === 'imported') {
       msg.characterId = characterId
@@ -223,9 +235,19 @@ export async function importChat(characterId: string, props: ImportChat) {
     useOverrides: props.useOverrides ?? false,
   })
 
+  chat.variables =
+    props.variables || resolveVariables([char], await loadItem('variableClasses'), char.name)
+  chat.variableUpdatesDisabled = props.variableUpdatesDisabled
+  const importedIds = new Map(
+    props.messages.filter((msg) => msg._id).map((msg) => [msg._id!, v4()])
+  )
   const start = Date.now()
   const messages: AppSchema.ChatMessage[] = props.messages.map((msg, i) => ({
-    _id: v4(),
+    _id: importedIds.get(msg._id || '') || v4(),
+    parent: msg.parent ? importedIds.get(msg.parent) : undefined,
+    json: msg.json,
+    ooc: msg.ooc,
+    retryJson: msg.retryJson,
     chatId: chat._id,
     kind: 'chat-message',
     msg: msg.msg,
@@ -233,8 +255,14 @@ export async function importChat(characterId: string, props: ImportChat) {
     userId: msg.userId ? localApi.ID : undefined,
     createdAt: new Date(start + i).toISOString(),
     updatedAt: new Date(start + i).toISOString(),
-    retries: [],
+    retries: msg.retries || [],
   }))
+  // Legacy flat logs have no parents; retain their chronological conversation.
+  if (!props.messages.some((msg) => msg.parent))
+    messages.forEach((msg, i) => {
+      msg.parent = messages[i - 1]?._id
+    })
+  chat.treeLeafId = importedIds.get(props.treeLeafId || '') || messages.slice(-1)[0]?._id
 
   const nextChats = await localApi.loadItem('chats').then((res) => res.concat(chat))
   await localApi.saveChats(nextChats)

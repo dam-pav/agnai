@@ -8,6 +8,7 @@ import {
   Switch,
   Match,
   on,
+  untrack,
 } from 'solid-js'
 import IsVisible from './IsVisible'
 import { createDebounce } from './util'
@@ -88,6 +89,8 @@ const TextInput: Component<Props> = (props) => {
   const value = createMemo(() =>
     props.value !== undefined ? props.value : (null as unknown as undefined)
   )
+  // Numeric values sync through the effect below so rerenders do not erase drafts like "-0.".
+  const initialInputValue = untrack(() => props.initialValue ?? props.value)
 
   const [countTokens] = createDebounce(async (text: string) => {
     const tokenizer = await getEncoder()
@@ -129,6 +132,18 @@ const TextInput: Component<Props> = (props) => {
     }
   }
 
+  const preserveNumericDraft = (next: string | number) => {
+    if (inputRef?.type !== 'number' || document.activeElement !== inputRef) return false
+    return (
+      inputRef.validity.badInput || inputRef.value === '' || Number(inputRef.value) === Number(next)
+    )
+  }
+
+  const finishNumericInput = () => {
+    if (inputRef?.type !== 'number' || props.value === undefined || props.static) return
+    inputRef.value = props.value.toString()
+  }
+
   createEffect(
     on(
       () => props.value,
@@ -136,7 +151,7 @@ const TextInput: Component<Props> = (props) => {
         if (props.value === undefined) return // Unsure about this
         if (props.static) return
 
-        if (inputRef) {
+        if (inputRef && !preserveNumericDraft(props.value)) {
           inputRef.value = props.value.toString()
         }
 
@@ -161,9 +176,9 @@ const TextInput: Component<Props> = (props) => {
 
   const onRef = (ref: any) => {
     props.ref?.(ref)
+    inputRef = ref
     setTimeout(() => {
-      inputRef = ref
-      if (props.value !== undefined) {
+      if (props.value !== undefined && !preserveNumericDraft(props.value)) {
         ref.value = props.value
       }
       resize()
@@ -182,6 +197,7 @@ const TextInput: Component<Props> = (props) => {
     setTimeout(() => {
       if (props.value === undefined || !inputRef) return
       if (!props.onChange) return
+      if (preserveNumericDraft(props.value)) return
       if (props.value.toString().trim() !== inputRef.value.toString().trim()) {
         inputRef.value = props.value.toString()
       }
@@ -270,7 +286,7 @@ const TextInput: Component<Props> = (props) => {
             readOnly={props.readonly}
             placeholder={placeholder()}
             aria-placeholder={placeholder()}
-            value={props.initialValue ?? value()}
+            value={props.type === 'number' ? initialInputValue : props.initialValue ?? value()}
             class={
               'form-field focusable-field box-border rounded-md border border-[var(--bg-600)] px-4 hover:border-white/20 ' +
               (props.class || '')
@@ -297,6 +313,7 @@ const TextInput: Component<Props> = (props) => {
             spellcheck={props.spellcheck}
             lang={props.lang}
             step={props.step}
+            onBlur={finishNumericInput}
             {...props.input}
           />
         </Match>
@@ -310,7 +327,7 @@ const TextInput: Component<Props> = (props) => {
               readOnly={props.readonly}
               placeholder={placeholder()}
               aria-placeholder={placeholder()}
-              value={value()}
+              value={props.type === 'number' ? initialInputValue : value()}
               class={
                 'form-field focusable-field rounded-xl border border-[var(--bg-600)] px-4 py-2 ' +
                 (props.class || '')
@@ -335,6 +352,7 @@ const TextInput: Component<Props> = (props) => {
               lang={props.lang}
               ref={onRef}
               step={props.step}
+              onBlur={finishNumericInput}
               {...props.input}
             />
             {props.children}

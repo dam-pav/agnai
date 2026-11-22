@@ -173,6 +173,7 @@ const EditScenarioEvents: Component<{
       instructions: props.state.instructions,
       memoryBookIds: props.state.memoryBookIds || [],
       defaultCharacterIds: props.state.defaultCharacterIds || [],
+      variables: props.state.variables || [],
       entries: props.state.entries,
     }
 

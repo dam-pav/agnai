@@ -32,6 +32,7 @@ export type CharacterUpdate = Partial<
     | 'visualType'
     | 'voiceDisabled'
     | 'imageSettings'
+    | 'variables'
     | 'json'
     | 'folder'
   >
@@ -65,6 +66,7 @@ export async function createCharacter(
     | 'visualType'
     | 'voiceDisabled'
     | 'imageSettings'
+    | 'variables'
     | 'json'
   >
 ) {

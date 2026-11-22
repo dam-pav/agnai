@@ -24,14 +24,18 @@ const ChatExport: Component<{ show: boolean; close: () => void }> = (props) => {
       sampleChat: chat?.sampleChat || '',
       scenario: chat?.scenario || '',
       treeLeafId: chat?.treeLeafId,
+      variables: chat?.variables,
+      variableUpdatesDisabled: chat?.variableUpdatesDisabled,
       messages: messages.map((msg) => ({
-        _id: msg._id.slice(0, 8),
+        _id: msg._id,
         createdAt: msg.createdAt,
         json: msg.json,
+        retries: msg.retries,
+        retryJson: msg.retryJson,
         extras: msg.extras,
         ooc: msg.ooc,
         values: msg.values,
-        parent: msg.parent ? msg.parent.slice(0, 8) : undefined,
+        parent: msg.parent,
         handle: msg.characterId
           ? chars.map[msg.characterId!]?.name
           : msg.userId

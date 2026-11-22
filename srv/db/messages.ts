@@ -27,6 +27,7 @@ export type NewMessage = {
   retries?: string[]
   parent?: string
   json?: AppSchema.ChatMessage['json']
+  retryJson?: AppSchema.ChatMessage['retryJson']
   values?: any
   name: string | undefined
 }
@@ -67,6 +68,7 @@ export async function createChatMessage(creating: NewMessage, ephemeral?: boolea
     event: creating.event,
     parent: creating.parent,
     json: creating.json,
+    retryJson: creating.retryJson,
   }
 
   if (creating.imagePrompt) {
@@ -126,10 +128,11 @@ export async function importMessages(userId: string, messages: NewMessage[]) {
       adapter: msg.adapter,
       createdAt: new Date(start + i).toISOString(),
       updatedAt: new Date(start + i).toISOString(),
-      retries: [],
+      retries: msg.retries || [],
+      retryJson: msg.retryJson,
     } as AppSchema.ChatMessage
 
-    if (msg.parent) {
+    if (msg._id) {
       parents.set(msg._id!, mapped)
     }
 
@@ -142,6 +145,10 @@ export async function importMessages(userId: string, messages: NewMessage[]) {
     msg.parent = parent?._id
   }
 
+  if (!messages.some((msg) => msg.parent))
+    docs.forEach((msg, i) => {
+      msg.parent = docs[i - 1]?._id
+    })
   await db('chat-message').insertMany(docs)
   return docs
 }
@@ -191,6 +198,7 @@ export async function editMessage(
       | 'retries'
       | 'parent'
       | 'json'
+      | 'retryJson'
       | 'imagePrompt'
     >
   >

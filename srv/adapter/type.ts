@@ -105,6 +105,7 @@ export type GenerateRequestV2 = {
   memoryScenario?: string
 
   jsonSchema?: { fields: JsonField[]; entities: StructureEntities }
+  variableBefore?: Record<string, number>
   jsonValues?: Record<string, any>
 
   /** Base64 attachments */

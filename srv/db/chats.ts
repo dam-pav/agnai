@@ -1,3 +1,4 @@
+import { resolveChatVariables } from './variables'
 import { v4 } from 'uuid'
 import { getCharacter } from './characters'
 import { db } from './client'
@@ -115,6 +116,7 @@ export async function create(
     treeLeafId: props.treeLeafId,
   }
 
+  doc.variables = await resolveChatVariables(doc)
   await db('chat').insertOne(doc)
 
   if (props.greeting) {

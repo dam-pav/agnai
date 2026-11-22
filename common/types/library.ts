@@ -1,3 +1,4 @@
+import type { VariableInstance } from '../chat-variables'
 import { PersonaFormat } from '../adapters'
 import { JsonField } from '../prompt'
 import { ImageSettings } from './image-schema'
@@ -44,6 +45,7 @@ export interface Character extends BaseCharacter {
   voice?: VoiceSettings
   voiceDisabled?: boolean
 
+  variables?: VariableInstance[]
   json?: ResponseSchema
 
   folder?: string

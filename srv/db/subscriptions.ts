@@ -102,6 +102,7 @@ export function toModelOption(sub: AppSchema.SubscriptionModel): AppSchema.Subsc
     guidance: !!sub.guidanceCapable,
     preset: {
       kind: 'submodel',
+      jsonSchemaCapable: sub.jsonSchemaCapable,
       service: sub.service,
       _id: sub._id,
       tokenHealing: sub.tokenHealing,

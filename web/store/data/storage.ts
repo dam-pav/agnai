@@ -1,4 +1,5 @@
 import { v4 } from 'uuid'
+import type { VariableClass } from '/common/chat-variables'
 import { defaultChars } from '../../../common/characters'
 import { AppSchema } from '../../../common/types/schema'
 import { api } from '../api'
@@ -50,6 +51,7 @@ export const KEYS = {
   lastChatId: 'guestLastChatId',
   memory: 'memory',
   scenario: 'scenario',
+  variableClasses: 'variableClasses',
   templates: 'templates',
 }
 
@@ -63,6 +65,7 @@ type LocalStorage = {
   lastChatId: string
   memory: AppSchema.MemoryBook[]
   scenario: AppSchema.ScenarioBook[]
+  variableClasses: VariableClass[]
   templates: AppSchema.PromptTemplate[]
 }
 
@@ -103,6 +106,7 @@ const fallbacks: { [key in StorageKey]: LocalStorage[key] } = {
   messages: [],
   memory: [],
   scenario: [],
+  variableClasses: [],
   templates: [],
 }
 
@@ -142,6 +146,7 @@ export async function handleGuestInit() {
       localStore.set('presets', res.result.presets)
       localStore.set('memory', res.result.books)
       localStore.set('scenario', res.result.scenario)
+      localStore.set('variableClasses', res.result.variableClasses || [])
       localStore.set('characters', res.result.characters)
       localStore.set('chats', res.result.chats)
       localStore.set('templates', res.result.templates)
@@ -183,6 +188,7 @@ async function getGuestInitEntities(config?: AppSchema.AppConfig) {
   const presets = await localApi.loadItem('presets', true)
   const books = await localApi.loadItem('memory', true)
   const scenario = await localApi.loadItem('scenario', true)
+  const variableClasses = await localApi.loadItem('variableClasses', true)
   const characters = await localApi.loadItem('characters', true)
   const chats = await localApi.loadItem('chats', true)
 
@@ -248,7 +254,7 @@ async function getGuestInitEntities(config?: AppSchema.AppConfig) {
 
   user._id = 'anon'
 
-  return { user, presets, profile, books, scenario, characters, chats, templates }
+  return { user, presets, profile, books, scenario, characters, chats, templates, variableClasses }
 }
 
 async function getGuestData() {
@@ -311,6 +317,7 @@ async function importGuestData(data: GuestEntities) {
   await savePresets(data.presets)
   await saveProfile(data.profile)
   await saveScenarios(data.scenario)
+  await saveVariableClasses(data.variableClasses || [])
   await saveTemplates(data.templates)
   await saveConfig(data.user)
 
@@ -412,6 +419,10 @@ export async function savePresets(state: AppSchema.UserGenPreset[]) {
 
 export async function saveBooks(state: AppSchema.MemoryBook[]) {
   await saveItem('memory', state)
+}
+
+export async function saveVariableClasses(state: VariableClass[]) {
+  await saveItem('variableClasses', state)
 }
 
 export async function saveScenarios(state: AppSchema.ScenarioBook[]) {

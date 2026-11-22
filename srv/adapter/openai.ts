@@ -114,9 +114,12 @@ export const handleOAI: ModelAdapter = async function* (opts) {
     const fields = opts.jsonSchema.reduce((prev: any, field: JsonField) => {
       const { disabled, name, type, ...rest } = field
       prev[field.name] = {
-        type: type.type,
+        ...type,
+        type: type.type === 'bool' ? 'boolean' : type.type === 'enum' ? 'string' : type.type,
         ...rest,
       }
+      if (prev[field.name].maxLength !== undefined && prev[field.name].maxLength <= 0)
+        delete prev[field.name].maxLength
       return prev
     }, base as any)
 
@@ -152,7 +155,7 @@ export const handleOAI: ModelAdapter = async function* (opts) {
 
   if (useChat) {
     const messages =
-      gen.thirdPartyFormat !== 'openai-chat' && opts.messages
+      (gen.thirdPartyFormat !== 'openai-chat' || opts.jsonSchema) && opts.messages
         ? opts.messages
         : await toChatCompletionPayload(
             opts,

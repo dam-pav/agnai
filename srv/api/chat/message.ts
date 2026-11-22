@@ -1,3 +1,9 @@
+import {
+  withVariableSchema,
+  variableState,
+  variableContext,
+  finalizeVariableOutput,
+} from '/common/chat-variables'
 import { UnwrapBody, assertValid } from '/common/valid'
 import { store } from '../../db'
 import { createChatStream, getGenerationSettings } from '../../adapter/generate'
@@ -13,7 +19,12 @@ import { mapPresetsToAdapter } from '/common/presets'
 import { isDefaultTemplate, templates } from '/common/presets/templates'
 import { Response } from 'express'
 import { getAdapter } from '/common/adapters'
-import { getResponseVariable, prepareJsonSchema } from '/common/guidance/json-schema'
+import {
+  getResponseVariable,
+  prepareJsonSchema,
+  getJsonDialogue,
+  continueJsonDialogue,
+} from '/common/guidance/json-schema'
 
 type GenRequest = UnwrapBody<typeof genValidator>
 type MsgEntities = Awaited<ReturnType<typeof getMessageEntities>>
@@ -35,6 +46,7 @@ const sendValidator = {
   bot: 'boolean?',
   messageId: 'string?',
   meta: 'any?',
+  json: 'any?',
 } as const
 
 const genValidator = {
@@ -66,6 +78,7 @@ const genValidator = {
   characters: 'any?',
   impersonate: 'any?',
   parts: {
+    variableContext: 'string?',
     scenario: 'string?',
     persona: 'string',
     greeting: 'string?',
@@ -85,6 +98,7 @@ const genValidator = {
   userEmbeds: 'any?',
   imageData: 'string?',
   jsonSchema: 'any?',
+  variableBefore: 'any?',
   jsonValues: 'any?',
   response: 'string?',
   eventStream: 'boolean?',
@@ -116,6 +130,7 @@ export const createMessage = handle(async (req) => {
       event: body.kind ? getScenarioEventType(body.kind) : undefined,
       parent: body.parent,
       meta: body.meta,
+      json: body.json,
     })
     sendGuest(guest, { type: 'message-created', msg: newMsg, chatId })
 
@@ -124,6 +139,7 @@ export const createMessage = handle(async (req) => {
 
   const chat = await store.chats.getChatOnly(chatId)
   if (!chat) throw errors.NotFound
+  if (!(await store.chats.canViewChat(userId, chat))) throw errors.Forbidden
   const members = chat.memberIds.concat(chat.userId)
 
   await ensureBotMembership(chat, members, impersonate)
@@ -139,6 +155,7 @@ export const createMessage = handle(async (req) => {
     parent: body.parent,
     name: impersonate?.name,
     meta: body.meta,
+    json: body.json,
   })
 
   await store.chats.update(chatId, { treeLeafId: userMsg._id })
@@ -217,9 +234,35 @@ export const generateMessageV2 = handle(async (req, res) => {
     })
   }
 
-  const schemaSrc = ents.preset.jsonSource === 'character' ? replyAs.json : ents.preset.json
-  const jsonEnabled = ents.preset.jsonEnabled === true || ents.preset.jsonEnabled === 'standard'
-  const schema = jsonEnabled ? prepareJsonSchema(schemaSrc, body) : undefined
+  const variableDefs = chat.variables || []
+  const variableGeneration =
+    variableDefs.length > 0 &&
+    !chat.variableUpdatesDisabled &&
+    body.kind !== 'summary' &&
+    body.kind !== 'chat-query'
+  const source = ents.preset.jsonSource === 'character' ? replyAs.json : ents.preset.json
+  const existingJsonEnabled =
+    ents.preset.jsonEnabled === true ||
+    ents.preset.jsonEnabled === 'standard' ||
+    ents.preset.jsonEnabled === 'separate'
+  const schemaSrc = variableGeneration
+    ? withVariableSchema(existingJsonEnabled ? source : undefined, variableDefs)
+    : source
+  const jsonEnabled =
+    variableGeneration || ents.preset.jsonEnabled === true || ents.preset.jsonEnabled === 'standard'
+  const schema = jsonEnabled && schemaSrc ? prepareJsonSchema(schemaSrc, body, true) : undefined
+  const allMessages = ents.guest ? [] : await store.msgs.getMessages(chatId)
+  const stateParent =
+    body.continuing?.parent ?? body.replacing?.parent ?? body.parent ?? chat.treeLeafId
+  const variableBefore = ents.guest
+    ? body.variableBefore || variableState(variableDefs, [])
+    : variableState(variableDefs, stateParent ? allMessages : [], stateParent)
+  body.parts.variableContext = variableContext(
+    variableDefs,
+    variableBefore,
+    body.impersonate?.name || body.sender?.handle,
+    !chat.variableUpdatesDisabled
+  )
 
   let hydration: JsonOutput | undefined
   let jsonPartial: any
@@ -227,6 +270,7 @@ export const generateMessageV2 = handle(async (req, res) => {
   let generated = body.response || ''
   let retries: string[] = []
   let error = false
+  let cancelled = false
   let adapter = 'local'
   let meta: Record<string, any> = {}
   let probs: any
@@ -329,6 +373,7 @@ export const generateMessageV2 = handle(async (req, res) => {
 
         if (signal.signal.aborted) {
           log.info(`Message aborted by user`)
+          cancelled = true
 
           generated = partial
           // error = true
@@ -398,6 +443,7 @@ export const generateMessageV2 = handle(async (req, res) => {
       generated = partial
 
       if (ex?.name === 'AbortError') {
+        cancelled = true
         signal = null
         error = false
         // Intentional NOOP - This is a user cancellation or request interruption
@@ -431,6 +477,7 @@ export const generateMessageV2 = handle(async (req, res) => {
       generated = hydration.response
     }
 
+    cancelled = cancelled || signal?.signal.aborted === true
     signal = null
 
     if (!ents.guest) {
@@ -438,7 +485,7 @@ export const generateMessageV2 = handle(async (req, res) => {
     }
   }
 
-  if (error) {
+  if (error || (cancelled && variableGeneration)) {
     if (body.eventStream) {
       res.write(`data: [DONE]\n\n`)
       res.end()
@@ -446,10 +493,24 @@ export const generateMessageV2 = handle(async (req, res) => {
     return
   }
 
+  if (schema && (!hydration || generated.trim().startsWith('{')))
+    hydration = schema.hydrator(generated)
+  if (hydration && schema && body.kind === 'continue')
+    hydration = continueJsonDialogue(hydration, body.continuing.msg, body, schema.hydrator)
+
+  if (variableGeneration) {
+    if (!hydration)
+      throw new StatusError(
+        'The model did not return structured variable output. No changes were saved.',
+        400
+      )
+    hydration = finalizeVariableOutput(hydration, variableDefs, variableBefore)
+  }
+
   const parent = getNewMessageParent(body, userMsg)
 
   if (hydration?.response) {
-    generated = hydration.response
+    generated = getJsonDialogue(hydration, body)
   }
 
   if (meta.probs) {
@@ -655,6 +716,11 @@ async function handleAuthedResponse(opts: {
           meta,
           state: 'retried',
           retries: nextRetries,
+          retryJson: [
+            body.replacing.json || null,
+            ...retries.map(() => null),
+            ...(body.replacing.retryJson || (body.replacing.retries || []).map(() => null)),
+          ],
           parent: body.parent,
           json: hydration ? hydration : (null as any),
         })
@@ -662,6 +728,7 @@ async function handleAuthedResponse(opts: {
         meta.probs = probs
         sendMsg(ents, {
           type: 'message-retry',
+          retryJson: next?.retryJson,
           requestId,
           chatId,
           messageId: body.replacing._id,
@@ -709,6 +776,7 @@ async function handleAuthedResponse(opts: {
         adapter,
         meta,
         state: 'continued',
+        json: hydration,
       })
       treeLeafId = body.continuing._id
       meta.probs = probs

@@ -1,4 +1,6 @@
 import './Message.css'
+import { withVariableSchema } from '/common/chat-variables'
+import { getJsonDialogue, getResponseVariable } from '/common/guidance/json-schema'
 import Purify from 'dompurify'
 import {
   Check,
@@ -201,10 +203,15 @@ const Message: Component<MessageProps> = (props) => {
         preset: props.preset?.current!,
       })
 
-      const json = getJsonUpdate(ctx, autoDefs?.schema, {
-        ...message.json.values,
-        response: props.content,
-      })
+      const json = getJsonUpdate(
+        ctx,
+        (Array.isArray(autoDefs?.schema?.schema) ? autoDefs?.schema : undefined) ||
+          (message.json.variables ? withVariableSchema(undefined, []) : undefined),
+        {
+          ...message.json.values,
+          response: props.content,
+        }
+      )
       display = json?.json.response || display
     }
 
@@ -228,13 +235,21 @@ const Message: Component<MessageProps> = (props) => {
         preset: props.preset?.current!,
       })
 
-      const update = getJsonUpdate(ctx, autoDefs?.schema, json)
+      const update = getJsonUpdate(
+        ctx,
+        (Array.isArray(autoDefs?.schema?.schema) ? autoDefs?.schema : undefined) ||
+          (message.json.variables ? withVariableSchema(undefined, []) : undefined),
+        json
+      )
 
       if (update) {
         msgStore.editMessageProp(message._id, {
           ...update,
+          json: { ...update.json, variables: message.json.variables },
           ...sender,
-          msg: jsonMsg(),
+          msg: update.json.values?.response
+            ? getJsonDialogue(update.json, { char: ctx.char! })
+            : jsonMsg(),
         })
       }
 
@@ -1514,12 +1529,17 @@ function stopResponse(opts: { text: string; author: string; stops: string[] }) {
 
 function getJsonUpdate(ctx: ChatContext, def: AppSchema.Character['json'], json: any) {
   if (!def) return
-  const hydration = hydrateTemplate(def, json, {
+  const entities = {
     char: ctx.char!,
     replyAs: ctx.char,
     sender: ctx.profile,
     impersonate: ctx.impersonate,
-  })
+  }
+  const hydration = hydrateTemplate(
+    def,
+    { ...json, response: json.response ?? json[getResponseVariable(entities)] },
+    entities
+  )
 
   return {
     json: hydration,

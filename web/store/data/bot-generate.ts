@@ -1,3 +1,10 @@
+import {
+  variableState,
+  variableContext,
+  withVariableSchema,
+  finalizeVariableOutput,
+  assertVariableSupport,
+} from '/common/chat-variables'
 import { v4 } from 'uuid'
 import { isLoggedIn } from '../api'
 import { getStore } from '../create'
@@ -22,7 +29,7 @@ import { countTokens, getEncoder } from '/common/tokenize'
 import { AppSchema } from '/common/types'
 import { UserEmbed } from '/common/types/memory'
 import { GenerateRequestV2, HistoryLine } from '/srv/adapter/type'
-import { getPromptEntities, PromptEntities } from './common'
+import { getPromptEntities, getPresetSubscription, PromptEntities } from './common'
 import { embedApi } from '../embeddings'
 import { ChatDetail } from '../chat'
 import { BUILTIN_FORMATS, replaceTags } from '/common/presets/templates'
@@ -41,7 +48,12 @@ import { inline, LazyPromise, lazyPromise, round, stripLeadingSpeakerName } from
 import type { ResponseState } from '../response'
 import { EVENTS, events } from '/web/emitter'
 import { debug } from '/common/debug'
-import { formatJsonSchemaVars, prepareJsonSchema } from '/common/guidance/json-schema'
+import {
+  formatJsonSchemaVars,
+  prepareJsonSchema,
+  getJsonDialogue,
+  continueJsonDialogue,
+} from '/common/guidance/json-schema'
 import { getJsonSchema } from '/web/shared/util'
 import { ResponseSchema } from '/common/types/library'
 
@@ -228,10 +240,20 @@ async function streamResponse(opts: StreamOpts) {
       chatId: req.request.chat._id,
     },
     async (response, state, json) => {
-      await handleStreamTick(
-        { opts, req, lazy, meta, active, sanitize, jsonCall: !!jsonSchema },
-        { response, state, json }
-      )
+      try {
+        await handleStreamTick(
+          { opts, req, lazy, meta, active, sanitize, jsonCall: !!jsonSchema },
+          { response, state, json }
+        )
+      } catch (ex: any) {
+        opts.state = 'error'
+        toastStore.error(ex.message || 'Could not save the generated response')
+        getStore('responses').setState({
+          waiting: undefined,
+          partial: undefined,
+          retrying: undefined,
+        })
+      }
     }
   )
 
@@ -342,19 +364,46 @@ async function handleStreamTick(
     case 'done': {
       if (!!opts.state) return
 
+      if (opts.signal.signal.aborted && req.entities.chat.variables?.length) return
       opts.state = 'done'
       const trimmed = sanitize(prefix + tick.response)
-      const hydrated = input.jsonCall ? req.schema?.hydrator?.(trimmed) : undefined
+      let hydrated = input.jsonCall ? req.schema?.hydrator?.(trimmed) : undefined
+      if (hydrated && req.request.continuing && req.schema)
+        hydrated = continueJsonDialogue(
+          hydrated,
+          req.request.continuing.msg,
+          req.schema.entities,
+          req.schema.hydrator
+        )
 
       if (hydrated) {
         tick.json = hydrated
         console.log(inline(tick.json))
       }
 
+      if (
+        (req.entities.chat.variables || []).length &&
+        !req.entities.chat.variableUpdatesDisabled &&
+        opts.kind !== 'summary' &&
+        opts.kind !== 'chat-query'
+      ) {
+        if (!tick.json)
+          throw new Error(
+            'The model did not return structured variable output. No variable changes were saved.'
+          )
+        tick.json = finalizeVariableOutput(
+          tick.json,
+          req.entities.chat.variables!,
+          req.props.variableBefore
+        )
+      }
+
       await handlePostStreamResponse({
         opts,
         req,
-        response: trimmed,
+        response: tick.json
+          ? getJsonDialogue(tick.json, req.schema?.entities || { char: req.props.replyAs })
+          : trimmed,
         meta: input.meta,
         json: tick.json,
         jsonCall: input.jsonCall,
@@ -481,6 +530,10 @@ async function handlePostStreamResponse(input: {
         msg: response,
         json,
         retries,
+        retryJson: [
+          replacing.json || null,
+          ...(replacing.retryJson || (replacing.retries || []).map(() => null)),
+        ],
         state: 'retried',
         meta,
       }
@@ -497,6 +550,7 @@ async function handlePostStreamResponse(input: {
       await msgsApi.editMessageProps(continuing, {
         msg: response,
         state: 'continued',
+        json,
         meta,
         assignTree: true,
       })
@@ -533,7 +587,7 @@ async function handlePostStreamResponse(input: {
     }
   }
 
-  if (input.jsonCall) {
+  if (input.jsonCall && req.entities.settings.jsonEnabled === 'separate') {
     await msgsApi.editMessageProps({ _id: messageId, chatId }, { json })
     getStore('responses').setState({
       retrying: undefined,
@@ -606,6 +660,7 @@ async function buildChatRequest(opts: GenerateOpts) {
     lastMessage: props.lastMessage?.date,
     chatEmbeds,
     userEmbeds,
+    variableBefore: props.variableBefore,
     jsonValues: props.json,
     reschemaPrompt: props.reschemaPrompt,
     eventStream: true,
@@ -650,6 +705,12 @@ async function getActivePromptOptions(
   const encoder = await getEncoder()
 
   const promptOpts = {
+    variableContext: variableContext(
+      entities.chat.variables || [],
+      props.variableBefore,
+      props.impersonate?.name || entities.profile.handle,
+      !entities.chat.variableUpdatesDisabled
+    ),
     kind: opts.kind,
     char: entities.char,
     characters: entities.characters,
@@ -736,11 +797,11 @@ async function createActiveChatPrompt(opts: GenerateOpts) {
   const encoder = await getEncoder()
 
   const presetDefs = getJsonSchema({
-    characterId: props.replacing?.characterId,
+    characterId: props.replacing?.characterId || props.replyAs._id,
     preset: entities.presets.current,
   })
 
-  const realDefs: ResponseSchema | undefined =
+  let realDefs: ResponseSchema | undefined =
     opts.kind === 'chat-query' && opts.schema?.length
       ? {
           schema: opts.schema,
@@ -751,6 +812,26 @@ async function createActiveChatPrompt(opts: GenerateOpts) {
           jailbreak: '',
         }
       : presetDefs?.schema
+
+  const variableDefs = entities.chat.variables || []
+  const variableGeneration =
+    variableDefs.length > 0 &&
+    !entities.chat.variableUpdatesDisabled &&
+    opts.kind !== 'chat-query' &&
+    opts.kind !== 'summary'
+  if (variableGeneration) {
+    assertVariableSupport(
+      entities.conn.service,
+      entities.conn.format,
+      getPresetSubscription(entities.settings)?.preset.jsonSchemaCapable
+    )
+    const enabled =
+      entities.settings.jsonEnabled === true ||
+      entities.settings.jsonEnabled === 'standard' ||
+      entities.settings.jsonEnabled === 'separate'
+    realDefs = withVariableSchema(enabled ? realDefs : undefined, variableDefs)
+    entities.settings.jsonEnabled = 'standard'
+  }
 
   debug('request')(
     `json source: %s (exists: %s)`,
@@ -781,6 +862,12 @@ async function createActiveChatPrompt(opts: GenerateOpts) {
       : undefined
 
   const promptOpts: PromptOpts = {
+    variableContext: variableContext(
+      entities.chat.variables || [],
+      props.variableBefore,
+      props.impersonate?.name || entities.profile.handle,
+      !entities.chat.variableUpdatesDisabled
+    ),
     kind: opts.kind,
     sender: entities.profile,
 
@@ -810,6 +897,14 @@ async function createActiveChatPrompt(opts: GenerateOpts) {
     schema: schema ? { fields: schema.schema, entities: schema.entities } : undefined,
   }
 
+  if (
+    promptOpts.variableContext &&
+    (await encoder(promptOpts.variableContext)) + (entities.settings.maxTokens || 0) >=
+      (entities.settings.maxContextLength || 8192)
+  )
+    throw new Error(
+      'Chat variables exceed the available context. Reduce their text or increase the context size.'
+    )
   const lines = await getPromptHistory(promptOpts, encoder)
 
   const retrievalAllowed =
@@ -922,6 +1017,7 @@ export type GenerateProps = {
   parent?: AppSchema.ChatMessage
   json: Record<string, any>
   reschemaPrompt?: string
+  variableBefore: Record<string, number>
 }
 
 async function getGenerateProps(opts: GenerateOpts, active: ChatDetail) {
@@ -954,6 +1050,7 @@ async function getGenerateProps(opts: GenerateOpts, active: ChatDetail) {
     impersonate: entities.impersonating,
     parent: getMessageParent(opts.kind, entities.messages),
     json,
+    variableBefore: {},
   }
 
   if (opts.kind === 'chat-query' && entities.presets.json) {
@@ -1100,6 +1197,16 @@ async function getGenerateProps(opts: GenerateOpts, active: ChatDetail) {
       break
     }
   }
+
+  const beforeMessages = props.continuing
+    ? entities.variableMessages.filter((msg) => msg._id !== props.continuing!._id)
+    : props.replacing
+    ? entities.variableMessages.slice(
+        0,
+        entities.variableMessages.findIndex((msg) => msg._id === props.replacing!._id)
+      )
+    : entities.variableMessages
+  props.variableBefore = variableState(entities.chat.variables || [], beforeMessages)
 
   if (!props.replyAs) throw new Error(`Could not find character to reply as`)
 

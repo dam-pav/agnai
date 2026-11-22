@@ -1,3 +1,4 @@
+import type { VariableInstance } from '/common/chat-variables'
 import { batch, createEffect, createMemo, createSignal, on, onMount } from 'solid-js'
 import { SetStoreFunction, createStore } from 'solid-js/store'
 import { AppSchema, VoiceSettings } from '/common/types'
@@ -52,6 +53,7 @@ export type EditorState = {
   persona: AppSchema.Persona
 
   imageSettings?: ImageSettings
+  variables?: VariableInstance[]
   json?: ResponseSchema
   imageOverride: string
   flags: Record<string, any>
@@ -61,6 +63,7 @@ export type SetEditor = SetStoreFunction<EditorState>
 
 const initState: EditorState = {
   state: 'init',
+  variables: [],
   name: '',
   personaKind: 'text',
   personaAttrs: [],
@@ -195,6 +198,7 @@ const [updateCache] = createDebounce(async (state: EditorState) => {
     greeting: state.greeting,
     alternateGreetings: state.alternateGreetings,
     sampleChat: state.sampleChat,
+    variables: state.variables,
     json: state.json,
     postHistoryInstructions: state.postHistoryInstructions,
     creator: state.creator,
@@ -483,6 +487,7 @@ function getPayload(state: EditorState, original?: NewCharacter) {
       kind: state.personaKind,
       attributes: fromAttrs(state.personaAttrs),
     },
+    variables: state.variables || [],
     json: {
       ...state.json,
     } as ResponseSchema,

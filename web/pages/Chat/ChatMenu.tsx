@@ -118,6 +118,9 @@ const ChatNav: Component<NavProps> = (props) => {
         <Users size={size} /> Participants
       </Nav.Item>
 
+      <Nav.Item onClick={() => props.togglePane('variables')}>
+        <Sliders /> Variables
+      </Nav.Item>
       <Nav.Item onClick={() => props.togglePane('chat-settings')}>
         <Settings size={size} /> Edit Chat
       </Nav.Item>

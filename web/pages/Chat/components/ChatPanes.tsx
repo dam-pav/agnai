@@ -9,6 +9,7 @@ import {
   createSignal,
   onCleanup,
 } from 'solid-js'
+import ChatVariables from './ChatVariables'
 import { chatStore, toastStore } from '/web/store'
 import Convertible from '../../../shared/Mode/Convertible'
 import { A, useParams, useSearchParams } from '@solidjs/router'
@@ -39,6 +40,7 @@ export const useValidChatPane = () => {
       case 'participants':
       case 'ui':
       case 'chat-settings':
+      case 'variables':
       case 'memory':
       case 'other':
         return true
@@ -153,6 +155,16 @@ const ChatPanes: Component<{}> = (props) => {
               close={closePane}
               footer={setPaneFooter}
             />
+          </Convertible>
+        </Match>
+
+        <Match when={pane.pane() === 'variables'}>
+          <Convertible
+            close={closePane}
+            title="Chat Variables"
+            footer={<Button onClick={() => closePane()}>Close</Button>}
+          >
+            <ChatVariables />
           </Convertible>
         </Match>
 

@@ -96,6 +96,8 @@ export async function createIndexes() {
     { name: 'chatmessages_chatId_kind_createdAt' }
   )
 
+  await db('variable-class').createIndex({ userId: 1 }, { name: 'variables_userId' })
+
   await db('scenario').createIndex({ userId: 1 }, { name: 'scenario_userId' })
 
   await db('apikey').createIndex({ userId: 1 }, { name: 'apikey_userId' })

@@ -1,3 +1,4 @@
+import { validateVariableInstances } from '/common/chat-variables'
 import { v4 } from 'uuid'
 import { AppSchema } from '../../../common/types/schema'
 import { api, isLoggedIn } from '../api'
@@ -239,6 +240,11 @@ export async function deleteCharacter(charId: string) {
 }
 
 export async function editPartialCharacter(charId: string, update: Partial<AppSchema.Character>) {
+  try {
+    if (update.variables) validateVariableInstances(update.variables)
+  } catch (ex: any) {
+    return localApi.error(ex.message)
+  }
   if (isLoggedIn()) {
     const res = await api.post<AppSchema.Character>(`/character/${charId}/update`, update)
     return res
@@ -262,6 +268,11 @@ export async function editCharacter(
   char: UpdateCharacter,
   previous?: AppSchema.Character
 ) {
+  try {
+    if (char.variables) validateVariableInstances(char.variables)
+  } catch (ex: any) {
+    return localApi.error(ex.message)
+  }
   if (isLoggedIn()) {
     const form = new FormData()
     appendFormOptional(form, 'name', char.name)
@@ -275,6 +286,7 @@ export async function editCharacter(
     strictAppendFormOptional(form, 'sampleChat', char.sampleChat)
     appendFormOptional(form, 'voice', JSON.stringify(char.voice))
     appendFormOptional(form, 'json', JSON.stringify(char.json))
+    appendFormOptional(form, 'variables', char.variables, JSON.stringify)
 
     if (char.avatar) {
       appendFormOptional(form, 'avatar', char.avatar)
@@ -336,6 +348,11 @@ export async function setFavorite(charId: string, favorite: boolean) {
 }
 
 export async function createCharacter(char: NewCharacter) {
+  try {
+    if (char.variables) validateVariableInstances(char.variables)
+  } catch (ex: any) {
+    return localApi.error(ex.message)
+  }
   if (isLoggedIn()) {
     const form = new FormData()
     form.append('name', char.name)
@@ -354,6 +371,7 @@ export async function createCharacter(char: NewCharacter) {
     appendFormOptional(form, 'sprite', JSON.stringify(char.sprite))
     appendFormOptional(form, 'imageSettings', JSON.stringify(char.imageSettings))
     appendFormOptional(form, 'json', JSON.stringify(char.json))
+    appendFormOptional(form, 'variables', char.variables, JSON.stringify)
 
     // v2 fields start here
     appendFormOptional(form, 'alternateGreetings', char.alternateGreetings, JSON.stringify)

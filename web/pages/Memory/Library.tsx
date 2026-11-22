@@ -6,6 +6,7 @@ import PromptTemplates from '../PromptTemplates'
 import { BooksTab, EmbedsTab } from './Memory'
 import { useSearchParams } from '@solidjs/router'
 import Button from '/web/shared/Button'
+import VariableClasses from '../Variables'
 
 export { Library as default }
 
@@ -14,7 +15,7 @@ const Library: Component = () => {
   setComponentPageTitle('Library')
 
   const allowed = createMemo(() => {
-    const base = ['Memories', 'Scenarios', 'Templates', 'Embeddings']
+    const base = ['Memories', 'Scenarios', 'Templates', 'Embeddings', 'Variable Classes']
 
     return base
   })
@@ -56,6 +57,10 @@ const Library: Component = () => {
 
         <Match when={tabs.current() === 'Embeddings'}>
           <EmbedsTab />
+        </Match>
+
+        <Match when={tabs.current() === 'Variable Classes'}>
+          <VariableClasses />
         </Match>
       </Switch>
     </>

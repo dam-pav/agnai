@@ -1,3 +1,4 @@
+import { validateVariableInstances } from '/common/chat-variables'
 import { v4 } from 'uuid'
 import { AppSchema, NewScenario } from '/common/types'
 import { api, isLoggedIn } from '../api'
@@ -32,6 +33,11 @@ export async function getScenario(id: string) {
 }
 
 export async function createScenario(scenario: NewScenario) {
+  try {
+    if (scenario.variables) validateVariableInstances(scenario.variables)
+  } catch (ex: any) {
+    return localApi.error(ex.message)
+  }
   if (isLoggedIn()) {
     const res = await api.post<AppSchema.ScenarioBook>(`/scenario`, scenario)
     return res
@@ -50,6 +56,11 @@ export async function createScenario(scenario: NewScenario) {
 }
 
 export async function updateScenario(scenarioId: string, update: NewScenario) {
+  try {
+    if (update.variables) validateVariableInstances(update.variables)
+  } catch (ex: any) {
+    return localApi.error(ex.message)
+  }
   if (isLoggedIn()) {
     const res = await api.method('put', `/scenario/${scenarioId}`, update)
     return res

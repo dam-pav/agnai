@@ -1,3 +1,5 @@
+import { db } from '../../db'
+import { resolveChatVariables } from '../../db/variables'
 import { Document } from 'mongodb'
 import { store } from '../../db'
 import { errors, handle } from '../wrap'
@@ -21,6 +23,14 @@ export const getChatDetail = handle(async ({ userId, params, query }) => {
   const canView = await store.chats.canViewChat(userId, detail.chat)
   if (!canView) {
     throw errors.Forbidden
+  }
+
+  if (!detail.chat.variables) {
+    detail.chat.variables = await resolveChatVariables(detail.chat)
+    await db('chat').updateOne(
+      { _id: id, variables: { $exists: false } },
+      { $set: { variables: detail.chat.variables } }
+    )
   }
 
   const [members, active] = await Promise.all([

@@ -8,8 +8,15 @@ import * as Saga from './saga'
 import * as Library from './library'
 import * as Preset from './presets'
 import * as Admin from './admin'
+import type {
+  VariableClass,
+  VariableInstance,
+  ResolvedVariable,
+  VariableResult,
+} from '../chat-variables'
 
 export type AllDoc =
+  | VariableClass
   | AppSchema.Announcement
   | AppSchema.Chat
   | AppSchema.ChatMessage
@@ -300,6 +307,8 @@ export namespace AppSchema {
 
     scenarioIds?: string[]
     scenarioStates?: string[]
+    variables?: ResolvedVariable[]
+    variableUpdatesDisabled?: boolean
 
     treeLeafId?: string
 
@@ -335,6 +344,7 @@ export namespace AppSchema {
     msg: string
 
     retries?: string[]
+    retryJson?: Array<ChatMessage['json'] | null>
     extras?: string[]
     characterId?: string
     userId?: string
@@ -359,6 +369,7 @@ export namespace AppSchema {
       history: string
       imageCaption: string
       values: any
+      variables?: VariableResult
     }
 
     invisible?: Record<string, boolean | undefined>
@@ -409,6 +420,7 @@ export namespace AppSchema {
     instructions?: string
     memoryBookIds?: string[]
     defaultCharacterIds?: string[]
+    variables?: VariableInstance[]
     entries: ScenarioEvent[]
     states: string[]
   }

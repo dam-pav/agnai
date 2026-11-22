@@ -1,3 +1,4 @@
+import { validateResolvedVariables } from '/common/chat-variables'
 import { assertValid } from '/common/valid'
 import { PERSONA_FORMATS } from '../../../common/adapters'
 import { store } from '../../db'
@@ -113,6 +114,8 @@ export const importChat = handle(async ({ body, userId }) => {
       scenario: 'string?',
       scenarioId: 'string?',
       treeLeafId: 'string?',
+      variables: ['any?'],
+      variableUpdatesDisabled: 'boolean?',
       messages: [
         {
           _id: 'string?',
@@ -125,6 +128,7 @@ export const importChat = handle(async ({ body, userId }) => {
           retries: ['string?'],
           createdAt: 'string?',
           json: 'any?',
+          retryJson: ['any?'],
           values: 'any?',
           state: 'string?',
           name: 'string?',
@@ -134,6 +138,8 @@ export const importChat = handle(async ({ body, userId }) => {
     },
     body
   )
+
+  if (body.variables) validateResolvedVariables(body.variables)
 
   /** Do not throw on a bad scenario import */
   if (body.scenarioId) {
@@ -164,7 +170,16 @@ export const importChat = handle(async ({ body, userId }) => {
     profile!
   )
 
+  if (body.variables) {
+    chat.variables = body.variables
+    chat.variableUpdatesDisabled = body.variableUpdatesDisabled
+    await store.chats.update(chat._id, {
+      variables: body.variables,
+      variableUpdatesDisabled: body.variableUpdatesDisabled,
+    })
+  }
   const messages = body.messages.map<NewMessage>((msg) => ({
+    _id: msg._id,
     chatId: chat._id,
     message: msg.msg,
     adapter: 'import',
@@ -173,14 +188,18 @@ export const importChat = handle(async ({ body, userId }) => {
     handle: msg.handle,
     ooc: msg.ooc ?? false,
     parent: msg.parent,
-    retries: character.alternateGreetings,
+    retries: msg.retries || [],
     event: undefined,
     name: msg.name,
     json: msg.json,
+    retryJson: msg.retryJson,
     values: msg.values,
   }))
 
-  await store.msgs.importMessages(userId, messages)
+  const imported = await store.msgs.importMessages(userId, messages)
+  const selected = body.messages.findIndex((msg) => msg._id === body.treeLeafId)
+  chat.treeLeafId = imported[selected >= 0 ? selected : imported.length - 1]?._id
+  await store.chats.update(chat._id, { treeLeafId: chat.treeLeafId })
 
   return chat
 })

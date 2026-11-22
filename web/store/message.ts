@@ -336,13 +336,18 @@ export const msgStore = createStore<MsgState>(
       retries[position - 1] = original
 
       const text = replacement
-      const res = await msgsApi.swapMessage(msg, text, retries)
+      const retryJson = (msg.retryJson || (msg.retries || []).map(() => null)).slice()
+      const json = retryJson[position - 1] || null
+      retryJson[position - 1] = msg.json || null
+      const res = await msgsApi.swapMessage(msg, text, retries, undefined, { json, retryJson })
       if (res.error) {
         toastStore.error(`Failed to swap message: ${res.error}`)
       }
 
       if (res.result) {
-        applyGraphUpdates({ updates: [{ _id: msgId, msg: text, retries }] })
+        applyGraphUpdates({
+          updates: [{ _id: msgId, msg: text, retries, json: json || undefined, retryJson }],
+        })
         onSuccess?.()
       }
     },
@@ -361,6 +366,9 @@ export const msgStore = createStore<MsgState>(
         return toastStore.error(`Cannot discard swipe: Swipe not found`)
       }
 
+      const retryJson = (msg.retryJson || (msg.retries || []).map(() => null)).slice()
+      const json = position === 0 ? retryJson[0] || null : msg.json || null
+      retryJson.splice(position === 0 ? 0 : position - 1, 1)
       const replacement = position === 0 ? retries[0] : msg.msg
       // Remove the message at the specified position from the retries array
       if (position !== 0) {
@@ -370,12 +378,14 @@ export const msgStore = createStore<MsgState>(
       }
 
       const text = replacement
-      const res = await msgsApi.swapMessage(msg, text, retries)
+      const res = await msgsApi.swapMessage(msg, text, retries, undefined, { json, retryJson })
       if (res.error) {
         toastStore.error(`Failed to discard message: ${res.error}`)
       }
       if (res.result) {
-        applyGraphUpdates({ updates: [{ _id: msgId, msg: text, retries }] })
+        applyGraphUpdates({
+          updates: [{ _id: msgId, msg: text, retries, json: json || undefined, retryJson }],
+        })
         onSuccess?.()
         toastStore.success(`Swipe deleted`, { ttl: 2 })
       }
