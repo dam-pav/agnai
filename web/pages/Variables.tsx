@@ -112,7 +112,7 @@ export default function VariablesPage() {
                   {cls.min} to {cls.max} · revision {cls.revision}
                 </p>
               </div>
-              <div class="flex flex-wrap gap-2">
+              <div class="ml-auto flex flex-wrap items-center justify-end gap-2">
                 <Button onClick={() => open(cls)}>Edit</Button>
                 <Button schema="secondary" onClick={() => open(cls, true)}>
                   Duplicate
@@ -123,7 +123,7 @@ export default function VariablesPage() {
                 >
                   Export
                 </Button>
-                <Button schema="red" onClick={() => setRemoving(cls._id)}>
+                <Button schema="red" class="ml-auto" onClick={() => setRemoving(cls._id)}>
                   Delete
                 </Button>
               </div>

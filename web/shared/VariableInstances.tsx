@@ -155,7 +155,8 @@ export const VariableInstances: Component<{
                 />
               </Show>
               <Button
-                schema="secondary"
+                schema="red"
+                class="self-end"
                 onClick={() => props.update((props.value || []).filter((_, i) => i !== index))}
               >
                 Remove variable

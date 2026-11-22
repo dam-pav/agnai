@@ -3,6 +3,7 @@ import { v4 } from 'uuid'
 import { VariableBand, VariableDefinition, VariableModifier } from '/common/chat-variables'
 import Button from './Button'
 import TextInput from './TextInput'
+import { ConfirmModal } from './Modal'
 
 export const VariableBands: Component<{
   value: VariableBand[]
@@ -11,6 +12,7 @@ export const VariableBands: Component<{
   max: number
   precision: number
 }> = (props) => {
+  const [removing, setRemoving] = createSignal<VariableBand>()
   const update = (index: number, change: Partial<VariableBand>) =>
     props.update(props.value.map((band, i) => (i === index ? { ...band, ...change } : band)))
   return (
@@ -45,23 +47,31 @@ export const VariableBands: Component<{
               value={band().text}
               onChange={(ev) => update(index, { text: ev.currentTarget.value })}
             />
-            <Button
-              schema="secondary"
-              onClick={() => props.update(props.value.filter((_, i) => i !== index))}
-            >
+            <Button schema="red" class="self-end" onClick={() => setRemoving(band())}>
               Remove band
             </Button>
           </div>
         )}
       </Index>
       <Button
-        schema="secondary"
+        schema="primary"
         onClick={() =>
           props.update([...props.value, { id: v4(), min: props.min, max: props.max, text: '' }])
         }
       >
         Add context band
       </Button>
+      <ConfirmModal
+        show={!!removing()}
+        close={() => setRemoving(undefined)}
+        confirm={() => {
+          props.update(props.value.filter((band) => band.id !== removing()?.id))
+          setRemoving(undefined)
+        }}
+        message={`Remove the context band from ${removing()?.min} to ${
+          removing()?.max
+        }? Its context text will be removed from this definition.`}
+      />
     </div>
   )
 }
@@ -71,6 +81,7 @@ export const VariableModifiers: Component<{
   update: (modifiers: VariableModifier[]) => void
   precision: number
 }> = (props) => {
+  const [removing, setRemoving] = createSignal<VariableModifier>()
   const update = (index: number, change: Partial<VariableModifier>) =>
     props.update(
       props.value.map((modifier, i) => (i === index ? { ...modifier, ...change } : modifier))
@@ -103,23 +114,31 @@ export const VariableModifiers: Component<{
               value={modifier().delta}
               onChange={(ev) => update(index, { delta: +ev.currentTarget.value })}
             />
-            <Button
-              schema="secondary"
-              onClick={() => props.update(props.value.filter((_, i) => i !== index))}
-            >
+            <Button schema="red" class="self-end" onClick={() => setRemoving(modifier())}>
               Remove modifier
             </Button>
           </div>
         )}
       </Index>
       <Button
-        schema="secondary"
+        schema="primary"
         onClick={() =>
           props.update([...props.value, { id: v4(), name: '', condition: '', delta: 1 }])
         }
       >
         Add modifier
       </Button>
+      <ConfirmModal
+        show={!!removing()}
+        close={() => setRemoving(undefined)}
+        confirm={() => {
+          props.update(props.value.filter((modifier) => modifier.id !== removing()?.id))
+          setRemoving(undefined)
+        }}
+        message={`Remove modifier "${
+          removing()?.name || 'Unnamed modifier'
+        }"? Its condition and adjustment will be removed from this definition.`}
+      />
     </div>
   )
 }
