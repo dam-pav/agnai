@@ -317,8 +317,6 @@ export async function inferenceStream(opts: InferenceOpts, onTick?: TickHandler)
 
   const lazy = lazyPromise<{ response: string }>()
 
-  let lastResponse = ''
-
   const payload = {
     requestId,
     user,
@@ -334,36 +332,32 @@ export async function inferenceStream(opts: InferenceOpts, onTick?: TickHandler)
   const provider = getProvider(settings?.providerId)
   const conn = provider ? getProviderConnection(provider) : undefined
 
+  let terminal = false
+  let ticks = Promise.resolve()
   const tickWrapper: TickHandler = (res, state, json) => {
-    if (localStorage.error_test === 'gen-tick' && lazy.state === 'pending' && state !== 'error') {
-      lazy.reject(new Error(`Error test -- ${state}`))
-      opts.signal?.abort()
-      getStore('responses').setState({ waiting: undefined, partial: undefined })
-    } else {
-      if (state === 'partial') {
-        lastResponse = res
-      }
-
-      if (state === 'done') {
-        if (typeof res !== 'string') lazy.resolve(res)
-        else lazy.resolve({ response: res })
-      }
-
-      if (state === 'error') {
-        lazy.reject(res)
-        getStore('responses').setState({ waiting: undefined, partial: undefined })
-      }
+    if (terminal) return
+    if (localStorage.error_test === 'gen-tick' && state !== 'error') {
+      res = `Error test -- ${state}`
+      state = 'error'
     }
+    if (state === 'done' || state === 'error') terminal = true
 
-    onTick?.(res, state, json)
+    // Save the final message before releasing the generation lock. Ignore late ticks.
+    ticks = ticks.then(async () => {
+      try {
+        await onTick?.(res, state, json)
+        if (state === 'done') {
+          lazy.resolve(typeof res === 'string' ? { response: res } : res)
+        }
+        if (state === 'error') lazy.reject(res)
+      } catch (err) {
+        terminal = true
+        lazy.reject(err)
+        opts.signal?.abort()
+      }
+    })
   }
 
-  if (opts.signal) {
-    opts.signal.signal.onabort = () => {
-      inferenceCallbacks.delete(requestId)
-      tickWrapper(lastResponse, 'done')
-    }
-  }
   if (conn?.local) {
     const headers: any = {}
     const key = provider?.userKey || opts.settings?.thirdPartyKey

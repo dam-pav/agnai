@@ -85,10 +85,9 @@ export const inferenceStream = wrap(async (req, res) => {
   const signal = new AbortController()
 
   if (isEventStream) {
-    req.socket.on('end', () => {
-      if (signal.signal.aborted) return
+    res.once('close', () => {
+      if (res.writableEnded || signal.signal.aborted) return
       signal.abort()
-      res.status(499).end()
     })
   }
 

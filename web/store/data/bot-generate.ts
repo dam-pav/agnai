@@ -123,6 +123,34 @@ type StreamOpts = { state?: 'error' | 'done' | 'complete' } & Exclude<
   }
 
 async function streamResponse(opts: StreamOpts) {
+  if (opts.signal.signal.aborted) return localApi.result({})
+  const responses = getStore('responses')
+  if (responses.getState().waiting && responses.getState().waiting?.signal !== opts.signal) {
+    return localApi.error(
+      'A response is already being generated. Cancel it before starting another.'
+    )
+  }
+  const { lastChatId } = getStore('chat').getState()
+  waiting({
+    chatId: lastChatId,
+    started: Date.now(),
+    signal: opts.signal,
+    mode: opts.kind,
+    phase: 'preparing',
+    characterId: opts.kind === 'request' ? opts.characterId : undefined,
+  })
+  try {
+    return await generateResponse(opts)
+  } catch (err) {
+    if (opts.signal.signal.aborted) return localApi.result({})
+    throw err
+  } finally {
+    // A cancelled request must not clear the state of a newer generation.
+    if (responses.getState().waiting?.signal === opts.signal) waiting(undefined)
+  }
+}
+
+async function generateResponse(opts: StreamOpts) {
   debug('bot-gen')('request type: %s', opts.kind)
   const { details, lastChatId } = getStore('chat').getState()
   const active = details[lastChatId]
@@ -131,7 +159,9 @@ async function streamResponse(opts: StreamOpts) {
   }
 
   const req = await buildChatRequest(opts)
+  opts.signal.signal.throwIfAborted()
   const { messages, assembled } = await toChatMessages(req.request, countTokens)
+  opts.signal.signal.throwIfAborted()
 
   if (opts.kind === 'chat-query') {
     const assistant = opts.assistant || 'Chat Query'
@@ -162,8 +192,11 @@ async function streamResponse(opts: StreamOpts) {
   }
 
   const lazy = lazyPromise()
+  // Errors can arrive before headers, before this promise is returned to the caller.
+  lazy.promise.catch(() => {})
 
   await handlePreStreamResponse(opts, req)
+  opts.signal.signal.throwIfAborted()
 
   const meta: any = {
     start: Date.now(),
@@ -213,6 +246,7 @@ async function streamResponse(opts: StreamOpts) {
 
   waiting({
     mode: opts.kind,
+    phase: 'waiting',
     characterId: req.request.replyAs._id,
     chatId: req.request.chat._id,
     started: Date.now(),
@@ -259,6 +293,8 @@ async function streamResponse(opts: StreamOpts) {
 
   /** In development: Performing JSON output in a separate call if specified by the schema */
 
+  if (opts.signal.signal.aborted) return localApi.result({})
+
   const isInseparableKind = opts.kind === 'chat-query' || opts.kind === 'summary'
   if (!isInseparableKind && req.entities.settings.jsonEnabled === 'separate' && req.schema) {
     await genApi.inferenceStream(
@@ -281,7 +317,6 @@ async function streamResponse(opts: StreamOpts) {
     )
   }
 
-  waiting(undefined)
   return lazy.promise
 }
 
@@ -298,6 +333,12 @@ async function handleStreamTick(
   tick: { state: InferenceState; response: string; json?: JsonOutput }
 ) {
   const { opts, req, active, sanitize, meta } = input
+  const responses = getStore('responses')
+  const pending = responses.getState().waiting
+  if (pending?.signal !== opts.signal) return
+  if ((tick.state === 'partial' || tick.state === 'thought') && pending.phase !== 'streaming') {
+    waiting({ ...pending, phase: 'streaming' })
+  }
 
   let prefix = input.req.request.continuing?.msg || ''
   if (prefix) {

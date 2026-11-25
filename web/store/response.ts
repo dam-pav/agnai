@@ -27,6 +27,7 @@ export type ResponseState = {
   waiting?: {
     chatId: string
     started: number
+    phase?: 'preparing' | 'waiting' | 'streaming'
     signal?: AbortController
     mode?: GenerateOpts['kind']
     input?: string
@@ -151,7 +152,8 @@ export const responseStore = createStore<ResponseState>(
       }
     },
 
-    async *request(_, chatId: string, characterId: string, onSuccess?: () => void) {
+    async *request({ waiting }, chatId: string, characterId: string, onSuccess?: () => void) {
+      if (waiting) return
       if (!chatId) {
         toastStore.error('Could not send message: No active chat')
         yield { partial: undefined }
@@ -211,9 +213,20 @@ export const responseStore = createStore<ResponseState>(
 
       let res: { result?: any; error?: any }
 
-      yield { partial: {} }
+      setter({
+        partial: {},
+        waiting: {
+          chatId: opts.chatId,
+          started: Date.now(),
+          signal,
+          mode: opts.mode,
+          phase: 'preparing',
+        },
+      })
 
-      const created = await handlePreSend(opts)
+      const created = await handlePreSend(opts).catch((error) => ({ messageId: undefined, error }))
+
+      if (signal.signal.aborted) return
 
       if (created?.error) {
         toastStore.error(`(Send) Message request failed: ${created?.error ?? 'Unknown error'}`)
@@ -225,7 +238,7 @@ export const responseStore = createStore<ResponseState>(
 
       switch (opts.mode) {
         case 'send-noreply': {
-          yield { partial: undefined }
+          yield { partial: undefined, waiting: undefined }
           return
         }
 

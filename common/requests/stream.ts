@@ -50,9 +50,11 @@ export const streamGenerator: CompletionGenerator = async function* (opts) {
   // We need to be able to cancel a request without triggering the 'user aborted' listeners
   const doneSignal = new AbortController()
   if (signal) {
-    signal.signal.addEventListener('abort', () => {
+    const abort = () => {
       doneSignal.abort()
-    })
+    }
+    if (signal.signal.aborted) abort()
+    else signal.signal.addEventListener('abort', abort, { once: true })
   }
 
   const response = await fetch(url, {

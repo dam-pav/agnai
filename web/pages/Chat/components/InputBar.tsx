@@ -342,6 +342,11 @@ const InputBar: Component<{
         </div>
       </Show>
 
+      <Show when={ctx.waiting?.phase === 'preparing' || ctx.waiting?.phase === 'waiting'}>
+        <div role="status" class="px-2 py-1 text-sm text-[var(--text-600)]">
+          {ctx.waiting?.phase === 'preparing' ? 'Preparing prompt…' : 'Waiting for response…'}
+        </div>
+      </Show>
       <div class="relative flex items-start justify-center rounded-md bg-[var(--bg-800)]">
         <Show when={ctx.waiting?.signal}>
           <button
