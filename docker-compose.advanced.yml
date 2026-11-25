@@ -20,6 +20,7 @@ services:
       INITIAL_PASSWORD: ${INITIAL_PASSWORD:?Set INITIAL_PASSWORD in .env}
       JWT_SECRET: ${JWT_SECRET:?Set a stable JWT_SECRET in .env}
       LOG_LEVEL: ${LOG_LEVEL:-info}
+      STREAM_OPEN_TIMEOUT: '${STREAM_OPEN_TIMEOUT:-90}'
       PORT: '3001'
       APP_HOST: '0.0.0.0'
       REDIS_HOST: redis

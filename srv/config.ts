@@ -19,6 +19,15 @@ assertValid(settingsValid, customSettings)
 
 dotenv.config({ path: '.env' })
 
+const streamOpenTimeout = +env('STREAM_OPEN_TIMEOUT', '90')
+if (
+  !Number.isFinite(streamOpenTimeout) ||
+  streamOpenTimeout < 0 ||
+  streamOpenTimeout * 1000 > 2_147_483_647
+) {
+  throw new Error('STREAM_OPEN_TIMEOUT must be between 0 and 2147483.647 seconds')
+}
+
 /**
  * We always want to use a relatively safe JWT signing secret
  * If the user has not provided one:
@@ -50,6 +59,7 @@ export const config = {
   clustering: !!env('CLUSTERING', ''),
   clusterWorkers: +env('CLUSTERING', ''),
   requestTimeout: +env('REQUEST_TIMEOUT', '0'),
+  streamOpenTimeout,
   auth: {
     inferenceKey: env('INFERENCE_KEY', ''),
     urls: env(

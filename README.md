@@ -96,6 +96,17 @@ page and publishes version tags matching `v*`.
 
 ## Self-Hosting Settings
 
+Set `STREAM_OPEN_TIMEOUT=120` in the backend environment (or root `.env`) to let browser
+streaming requests wait up to 120 seconds for response headers. The default is 90 seconds;
+`0` disables this timer. This applies to both direct provider connections and requests through
+the Agnai backend, including time spent processing the prompt before headers arrive. It does
+not impose a total generation time limit or change a reverse proxy's timeouts.
+
+After changing the value, restart the backend (recreate the container for Docker environment
+changes) and refresh the browser. The value is delivered through the settings API, so adjusting
+it does not require rebuilding the frontend once this feature is deployed. The advanced Compose
+setup forwards `STREAM_OPEN_TIMEOUT` from its stack variables or `.env`.
+
 To try and cater for the small tweaks and tuning that people need for their specific needs at an application level we have `settings.json`.  
 You can create a file called `settings.json` at the root level to apply some changes across the entire application.  
 If you have a specific need for your application, this is the place to ask to have it catered for.

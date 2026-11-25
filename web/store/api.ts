@@ -2,6 +2,7 @@ import Cookies from 'js-cookie'
 import { EVENTS, events } from '../emitter'
 import { jwtDecode } from 'jwt-decode'
 import needle from 'needle'
+import { getStore } from './create'
 import { parseSearchQuery, tryParse, incompleteJson, parseEvent } from '/common/util'
 import { debug } from '/common/debug'
 import type { TickHandler } from '/common/prompt'
@@ -201,9 +202,15 @@ type SSEOpts<T = {}> = T & {
   onTick?: TickHandler
 }
 
+// In browsers, Needle's open timeout can include waiting for response headers during prompt processing.
+function getStreamOpenTimeoutMs() {
+  return (getStore('settings').getState().config.streamOpenTimeout ?? 90) * 1000
+}
+
 export function localSSE(opts: SSEOpts<{ host: string }>) {
   const resp = needle.post(joinUrl(opts.host, opts.path), JSON.stringify(opts.body), {
     parse: false,
+    open_timeout: getStreamOpenTimeoutMs(),
     signal: opts.signal?.signal,
 
     headers: {
@@ -330,6 +337,7 @@ export function fetchSSE(opts: SSEOpts) {
   const { path, headers, body, signal } = opts
   let resp = needle.post(api.toApiUrl(path), JSON.stringify(body), {
     parse: false,
+    open_timeout: getStreamOpenTimeoutMs(),
     signal: signal?.signal,
 
     headers: {

@@ -29,6 +29,8 @@ export type ServerEmbedding = {
   inputProp: string
 }
 export interface AppConfig {
+  /** Browser streaming connection timeout in seconds. Zero disables the timer. */
+  streamOpenTimeout?: number
   adapters: AIAdapter[]
   version: string
   canAuth: boolean

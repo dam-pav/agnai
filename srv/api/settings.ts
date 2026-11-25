@@ -109,6 +109,7 @@ export async function getAppConfig(user?: AppSchema.User) {
     updateRegisteredSubs()
 
     appConfig = {
+      streamOpenTimeout: config.streamOpenTimeout,
       adapters: config.adapters,
       version: '',
       selfhosting: config.jsonStorage,
