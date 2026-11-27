@@ -1,3 +1,4 @@
+import { updateCharacterPresence } from '/common/participant-presence'
 import { resolveChatVariables } from './variables'
 import { v4 } from 'uuid'
 import { getCharacter } from './characters'
@@ -271,10 +272,21 @@ export async function getActiveMembers(chatId: string) {
 }
 
 export async function setChatCharacter(chatId: string, charId: string, state: boolean) {
+  const chat = await getChatOnly(chatId)
+  if (!chat) throw errors.NotFound
+  const at = now()
+  const characterPresence = updateCharacterPresence(chat, charId, state, at)
   await db('chat').updateOne(
     { _id: chatId },
-    { $set: { updatedAt: now(), [`characters.${charId}`]: state } }
+    {
+      $set: {
+        updatedAt: at,
+        [`characters.${charId}`]: state,
+        [`characterPresence.${charId}`]: characterPresence[charId],
+      },
+    }
   )
+  return characterPresence
 }
 
 export async function restartChat(

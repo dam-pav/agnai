@@ -284,6 +284,8 @@ export namespace AppSchema {
     userEmbedId?: string
 
     memberIds: string[]
+    /** Presence intervals; messages outside these intervals are unavailable to the participant. */
+    characterPresence?: Record<string, Array<{ joinedAt: string; leftAt?: string }>>
     characters?: Record<string, boolean>
     tempCharacters?: Record<string, AppSchema.Character>
 

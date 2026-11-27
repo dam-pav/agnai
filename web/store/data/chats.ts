@@ -1,3 +1,5 @@
+import { localEmit } from '../socket'
+import { updateCharacterPresence } from '/common/participant-presence'
 import { resolveVariables, validateResolvedVariables } from '/common/chat-variables'
 import type { ImportChat, NewChat } from '../chat'
 import { v4 } from 'uuid'
@@ -408,11 +410,18 @@ export async function addCharacter(chatId: string, charId: string) {
 
   const next: AppSchema.Chat = {
     ...chat,
-    characters: Object.assign(chat?.characters || {}, { [charId]: true }),
+    characterPresence: updateCharacterPresence(chat, charId, true, new Date().toISOString()),
+    characters: { ...chat.characters, [charId]: true },
   }
 
   await localApi.saveChats(replace(chatId, chats, next))
-  return localApi.result({ success: true, char })
+  localEmit({
+    type: 'chat-character-added',
+    chatId,
+    character: char,
+    characterPresence: next.characterPresence,
+  })
+  return localApi.result({ success: true, char, characterPresence: next.characterPresence })
 }
 
 export async function upsertTempCharacter(
@@ -433,9 +442,15 @@ export async function upsertTempCharacter(
     _id: char._id || `temp-${v4().slice(0, 8)}`,
     userId: 'anon',
     kind: 'character',
-    createdAt: new Date().toISOString(),
+    createdAt: chat.tempCharacters?.[char._id || '']?.createdAt || new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   }
+  chat.characterPresence = updateCharacterPresence(
+    chat,
+    newchar._id,
+    newchar.favorite !== false && !newchar.deletedAt,
+    newchar.updatedAt
+  )
   const temp = chat.tempCharacters || {}
   temp[newchar._id] = newchar
   chat.tempCharacters = temp
@@ -462,9 +477,16 @@ export async function removeCharacter(chatId: string, charId: string) {
 
   const next: AppSchema.Chat = {
     ...chat,
-    characters: Object.assign(chat?.characters || {}, { [charId]: false }),
+    characterPresence: updateCharacterPresence(chat, charId, false, new Date().toISOString()),
+    characters: { ...chat.characters, [charId]: false },
   }
 
   await localApi.saveChats(replace(chatId, chats, next))
-  return localApi.result({ success: true })
+  localEmit({
+    type: 'chat-character-removed',
+    chatId,
+    characterId: charId,
+    characterPresence: next.characterPresence,
+  })
+  return localApi.result({ success: true, characterPresence: next.characterPresence })
 }

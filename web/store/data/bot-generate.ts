@@ -14,6 +14,7 @@ import {
   createPromptParts,
   getLinesForPrompt,
   getPromptHistory,
+  isMessageVisible,
   getTemplate,
   InferenceState,
   JsonField,
@@ -810,6 +811,23 @@ async function createActiveChatPrompt(opts: GenerateOpts) {
 
   const props = await getGenerateProps(opts, active)
   const entities = props.entities
+  // Use the same perspective for history, lore triggers, JSON values and semantic retrieval.
+  props.messages = props.messages.filter((msg) =>
+    isMessageVisible(entities.chat, msg, props.replyAs._id)
+  )
+  props.json = props.messages.reduce<Record<string, any>>(
+    (prev, curr) => Object.assign(prev, curr.json?.values || {}),
+    {}
+  )
+  const lastUserMessage = props.messages.findLast((msg) => !!msg.userId)
+  entities.lastMessage = lastUserMessage
+    ? {
+        msg: lastUserMessage.msg,
+        date: lastUserMessage.createdAt,
+        id: lastUserMessage._id,
+        parent: lastUserMessage.parent,
+      }
+    : undefined
   const template = getTemplate({
     settings:
       opts.kind === 'chat-query'

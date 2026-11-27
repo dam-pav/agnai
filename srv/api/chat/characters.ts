@@ -1,3 +1,4 @@
+import { updateCharacterPresence } from '/common/participant-presence'
 import { assertValid } from '/common/valid'
 import { store } from '../../db'
 import { errors, handle } from '../wrap'
@@ -31,11 +32,16 @@ export const addCharacter = handle(async ({ body, params, userId }) => {
   if (!character) throw errors.Forbidden
 
   // TODO: Move query to store module
-  await store.chats.setChatCharacter(chatId, charId, true)
+  const characterPresence = await store.chats.setChatCharacter(chatId, charId, true)
   const members = await store.chats.getActiveMembers(chatId)
-  sendMany(members.concat(chat.userId), { type: 'chat-character-added', character, chatId })
+  sendMany(members.concat(chat.userId), {
+    type: 'chat-character-added',
+    character,
+    chatId,
+    characterPresence,
+  })
 
-  return { success: true }
+  return { success: true, characterPresence }
 })
 
 export const removeCharacter = handle(async ({ params, userId }, _) => {
@@ -53,7 +59,7 @@ export const removeCharacter = handle(async ({ params, userId }, _) => {
 
   if (!chat.characters[charId]) return { success: true }
 
-  await store.chats.setChatCharacter(chatId, charId, false)
+  const characterPresence = await store.chats.setChatCharacter(chatId, charId, false)
 
   const members = await store.chats.getActiveMembers(chatId)
 
@@ -61,8 +67,9 @@ export const removeCharacter = handle(async ({ params, userId }, _) => {
     type: 'chat-character-removed',
     chatId,
     characterId: charId,
+    characterPresence,
   })
-  return { success: true }
+  return { success: true, characterPresence }
 })
 
 export const upsertTempCharacter = handle(async ({ body, params, userId }) => {
@@ -106,7 +113,7 @@ export const upsertTempCharacter = handle(async ({ body, params, userId }) => {
   const upserted: AppSchema.Character = {
     _id: id,
     kind: 'character',
-    createdAt: now(),
+    createdAt: prev?.createdAt || now(),
     updatedAt: now(),
     userId: chat.userId,
     name: body.name,
@@ -136,6 +143,12 @@ export const upsertTempCharacter = handle(async ({ body, params, userId }) => {
     json: body.json,
   }
 
+  const characterPresence = updateCharacterPresence(
+    chat,
+    id,
+    upserted.favorite !== false && !upserted.deletedAt,
+    upserted.updatedAt
+  )
   tempCharacters[upserted._id] = upserted
 
   const filename = await entityUploadBase64('char', upserted._id, body.avatar)
@@ -145,7 +158,7 @@ export const upsertTempCharacter = handle(async ({ body, params, userId }) => {
 
   const members = await store.chats.getActiveMembers(params.id)
 
-  await store.chats.update(params.id, { tempCharacters })
+  await store.chats.update(params.id, { tempCharacters, characterPresence })
 
   sendMany(members.concat(chat.userId), {
     type: 'chat-temp-character',

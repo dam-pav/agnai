@@ -1,3 +1,4 @@
+import { wasCharacterPresent } from './participant-presence'
 import type { GenerateRequestV2, HistoryLine } from '../srv/adapter/type'
 import type { AppSchema, TokenCounter } from './types'
 import { AIAdapter, GOOGLE_LIMITS, MODE_SETTINGS } from './adapters'
@@ -621,7 +622,9 @@ export async function buildPromptPlaceholders(
       // This will use the 'replyAs' character "if present", otherwise it'll defer to the chat.character.name
       .map((text) => replace(text))
 
-    if (chat.greeting) {
+    if (!wasCharacterPresent(chat, replyAs._id, chat.createdAt)) {
+      parts.greeting = ''
+    } else if (chat.greeting) {
       parts.greeting = replace(chat.greeting)
     } else {
       parts.greeting = replace(char.greeting)
@@ -827,6 +830,8 @@ export function isMessageInvisible(
   msg: AppSchema.ChatMessage,
   characterId: string
 ): boolean {
+  if (!wasCharacterPresent(chat, characterId, msg.createdAt)) return true
+
   const specific = msg.invisible?.[characterId]
   const defaults = chat.invisible?.[characterId]
   const charDefaults = chat.invisibleChars?.[characterId]?.[msg.characterId || 'none']

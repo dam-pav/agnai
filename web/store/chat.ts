@@ -1,3 +1,4 @@
+import { updateCharacterPresence } from '/common/participant-presence'
 import {
   createPromptParts,
   Prompt,
@@ -739,7 +740,7 @@ subscribe('chat-server-notification', { chatId: 'string', text: 'string' }, (bod
 
 subscribe(
   'chat-character-added',
-  { chatId: 'string', active: 'boolean?', character: 'any' },
+  { chatId: 'string', active: 'boolean?', character: 'any', characterPresence: 'any?' },
   (body) => {
     const { details, allChats } = chatStore.getState()
     const detail = details[body.chatId]
@@ -749,6 +750,7 @@ subscribe(
       return {
         ...chat,
         characters: Object.assign({}, chat.characters, { [body.character._id]: true }),
+        characterPresence: body.characterPresence ?? chat.characterPresence,
       }
     })
 
@@ -762,33 +764,44 @@ subscribe(
     }
 
     chatStore.setState({
-      details: updateChatDetail(body.chatId, { characters: nextActive }),
+      details: updateChatDetail(body.chatId, {
+        characters: nextActive,
+        characterPresence: body.characterPresence ?? detail.chat.characterPresence,
+      }),
     })
 
     events.emit(EVENTS.charAdded, body.character)
   }
 )
 
-subscribe('chat-character-removed', { chatId: 'string', characterId: 'string' }, (body) => {
-  const { details, allChats } = chatStore.getState()
-  const detail = details[body.chatId]
+subscribe(
+  'chat-character-removed',
+  { chatId: 'string', characterId: 'string', characterPresence: 'any?' },
+  (body) => {
+    const { details, allChats } = chatStore.getState()
+    const detail = details[body.chatId]
 
-  const nextChats = allChats.map((c) => {
-    if (c._id !== body.chatId) return c
-    return {
-      ...c,
-      characters: { ...(c.characters || {}), [body.characterId]: false },
-    }
-  })
-  chatStore.setState({ allChats: nextChats })
+    const nextChats = allChats.map((c) => {
+      if (c._id !== body.chatId) return c
+      return {
+        ...c,
+        characters: { ...(c.characters || {}), [body.characterId]: false },
+        characterPresence: body.characterPresence ?? c.characterPresence,
+      }
+    })
+    chatStore.setState({ allChats: nextChats })
 
-  if (!detail) return
+    if (!detail) return
 
-  const nextChatCharacters = { ...(detail.chat.characters || {}), [body.characterId]: false }
-  chatStore.setState({
-    details: updateChatDetail(body.chatId, { characters: nextChatCharacters }),
-  })
-})
+    const nextChatCharacters = { ...(detail.chat.characters || {}), [body.characterId]: false }
+    chatStore.setState({
+      details: updateChatDetail(body.chatId, {
+        characters: nextChatCharacters,
+        characterPresence: body.characterPresence ?? detail.chat.characterPresence,
+      }),
+    })
+  }
+)
 
 subscribe('service-prompt', { id: 'string', prompt: 'any' }, (body) => {
   const { promptHistory } = chatStore.getState()
@@ -818,12 +831,19 @@ subscribe('chat-temp-character', { chatId: 'string', character: 'any' }, (body) 
 })
 
 function replaceTemp(chat: AppSchema.Chat, char: AppSchema.Character): AppSchema.Chat {
+  const characterPresence = updateCharacterPresence(
+    chat,
+    char._id,
+    char.favorite !== false && !char.deletedAt,
+    char.updatedAt
+  )
   const temp = chat.tempCharacters || {}
   temp[char._id] = char
 
   return {
     ...chat,
     tempCharacters: { ...temp },
+    characterPresence,
   }
 }
 
